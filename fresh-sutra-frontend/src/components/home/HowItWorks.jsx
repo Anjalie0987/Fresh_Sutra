@@ -15,7 +15,7 @@ const StepCard = ({ image, title, subtitle, description }) => (
 
 const HowItWorks = () => {
     return (
-        <section className="w-full py-16 md:py-24 bg-gradient-to-br from-[#F1FAF3] to-[#FFF8EE]">
+        <section className="w-full py-20 md:py-28 bg-gradient-to-b from-[#E6F4EA] to-[#FFF4E8]">
             <div className="container mx-auto px-4 md:px-8">
 
                 {/* Section Header */}

@@ -85,18 +85,7 @@ const Hero = () => {
 
                     {/* CTAs */}
                     <div className="flex flex-col sm:flex-row items-center gap-5 justify-center w-full">
-                        {/* Primary Button 1: Suggesting keeping this as is, but request implied Order Now might be distinct or secondary primary. 
-                            However, the prompt said "Add Order Now as the secondary primary action" or replace it. 
-                            Since "Find Juice Near Me" is already prominent, making "Order Now" also prominent. 
-                        */}
-                        <Link
-                            to="/explore"
-                            className="inline-flex items-center justify-center px-10 py-4 bg-secondary text-white rounded-full text-lg font-bold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-yellow-600 transition-all active:scale-95 w-full sm:w-auto transform hover:-translate-y-1"
-                        >
-                            Find Juice Near Me
-                        </Link>
-
-                        {/* New CTA: Order Now */}
+                        {/* Primary Button: Order Now */}
                         <Link
                             to="/location"
                             className="inline-flex items-center justify-center px-10 py-4 bg-secondary text-white rounded-full text-lg font-bold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-yellow-600 transition-all active:scale-95 w-full sm:w-auto transform hover:-translate-y-1"

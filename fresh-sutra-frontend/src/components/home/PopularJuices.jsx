@@ -3,89 +3,110 @@ import PineappleJuiceImg from '../../assets/images/img4.png';
 import MixedFruitJuiceImg from '../../assets/images/mixed.png';
 import WatermelonJuiceImg from '../../assets/images/watermelon.png';
 
-const JuiceCard = ({ image, name, description, bgColor }) => (
-    <div className={`flex-none w-[280px] md:w-full md:flex-1 ${bgColor} rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-2 transition-all duration-300 cursor-pointer group snap-start relative overflow-hidden`}>
-        {/* Floating Image Effect */}
-        <div className="w-full h-48 mb-4 flex items-center justify-center relative z-10 perspective-1000">
-            <img
-                src={image}
-                alt={name}
-                className="w-4/5 h-auto object-contain drop-shadow-xl transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 ease-out"
-            />
+const JuiceRow = ({ image, name, description, bgColor, blobColor, reverse }) => (
+    <div className={`flex flex-col ${reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center justify-between gap-8 md:gap-20 w-full mb-24 last:mb-0`}>
+
+        {/* Image Section (Half Width) */}
+        <div className="w-full md:w-1/2 flex items-center justify-center relative">
+            <div className="relative w-72 h-72 md:w-[400px] md:h-[400px] flex items-center justify-center">
+
+                {/* Visual Background Circle (Smaller than image) */}
+                <div className={`absolute inset-0 m-auto w-56 h-56 md:w-80 md:h-80 rounded-full ${bgColor} opacity-60`} />
+
+                {/* Soft Blob/Glow */}
+                <div className={`absolute -inset-4 rounded-full ${blobColor} opacity-30 blur-3xl`} />
+
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-10 w-3 h-3 rounded-full bg-secondary-red/20" />
+                <div className="absolute bottom-10 left-4 w-2 h-2 rounded-full bg-secondary/30" />
+
+                {/* Main Image */}
+                <img
+                    src={image}
+                    alt={name}
+                    className="relative z-10 w-64 md:w-80 h-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-in-out"
+                />
+            </div>
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 text-center">
-            <h3 className="text-xl font-bold text-neutral-900 mb-2 leading-tight">{name}</h3>
-            <p className="text-neutral-600 text-sm font-medium opacity-90 line-clamp-2">{description}</p>
+        {/* Text Content Section (Half Width) */}
+        <div className={`w-full md:w-1/2 text-center ${reverse ? 'md:text-right' : 'md:text-left'} px-4 md:px-0`}>
+            <h3 className="text-3xl md:text-5xl font-bold text-neutral-900 mb-6 leading-tight">
+                {name}
+            </h3>
+            <p className="text-neutral-500 text-lg md:text-xl leading-relaxed max-w-lg mx-auto md:mx-0 font-medium">
+                {description}
+            </p>
         </div>
-
-        {/* Subtle decorative circle/glow behind image */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-white/20 rounded-full blur-2xl -z-0" />
     </div>
 );
 
 const PopularJuices = () => {
     return (
-        <section className="w-full py-16 md:py-24 relative overflow-hidden">
-            {/* Soft Transparent Background with Colored Blur Overlay */}
-            <div className="absolute inset-0 bg-white/50 -z-20" /> {/* Base transparency */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#FFF3E0] via-transparent to-[#EAF7EA] opacity-60 blur-3xl -z-10" />
+        <section className="w-full py-24 md:py-32 relative overflow-hidden bg-[#FFFBF2]">
+            {/* Background Decorative Blobs */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-orange-100/40 rounded-full blur-3xl opacity-60 mix-blend-multiply filter" />
+                <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-green-50/40 rounded-full blur-3xl opacity-50 mix-blend-multiply filter" />
+                <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-yellow-50/30 rounded-full blur-3xl opacity-40" />
+            </div>
 
-            <div className="container mx-auto px-4 md:px-8">
+            <div className="container mx-auto px-6 md:px-12 relative z-10">
 
                 {/* Section Header */}
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 mb-3 tracking-tight">
+                <div className="text-center mb-24">
+                    <h2 className="text-3xl md:text-5xl font-extrabold text-neutral-900 mb-4 tracking-tight">
                         Popular Juices Loved by Customers
                     </h2>
-                    <p className="text-lg text-neutral-500 font-medium">
-                        Trending fresh juices
+                    <p className="text-lg text-neutral-500 font-medium tracking-wide">
+                        Handpicked favorites, freshly squeezed
                     </p>
                 </div>
 
-                {/* Cards Container */}
-                {/* Mobile: Horizontal Scroll | Desktop: Grid */}
-                <div className="flex overflow-x-auto pb-8 md:pb-0 gap-6 md:grid md:grid-cols-4 snap-x snap-mandatory scrollbar-hide md:gap-8 px-2 md:px-0">
+                {/* Rows Container */}
+                <div className="flex flex-col w-full max-w-6xl mx-auto">
 
-                    {/* 1. Orange */}
-                    <JuiceCard
+                    {/* 1. Orange (Left Image) */}
+                    <JuiceRow
                         image={OrangeJuiceImg}
                         name="Fresh Orange Juice"
-                        description="Bright, refreshing, and naturally energizing"
-                        bgColor="bg-orange-50"
+                        description="Sun-kissed sweetness with a tangy citrus mood. A perfect morning energizer."
+                        bgColor="bg-orange-100"
+                        blobColor="bg-orange-300"
+                        reverse={false}
                     />
 
-                    {/* 2. Pineapple */}
-                    <JuiceCard
+                    {/* 2. Pineapple (Right Image) */}
+                    <JuiceRow
                         image={PineappleJuiceImg}
                         name="Zesty Pineapple Juice"
-                        description="Sweet, tropical, and cooling"
-                        bgColor="bg-yellow-50"
+                        description="Tropical punch that cools you down instantly. Sweet, tangy, and refreshing."
+                        bgColor="bg-yellow-100"
+                        blobColor="bg-yellow-300"
+                        reverse={true}
                     />
 
-                    {/* 3. Mixed Fruit */}
-                    <JuiceCard
+                    {/* 3. Mixed Fruit (Left Image) */}
+                    <JuiceRow
                         image={MixedFruitJuiceImg}
                         name="Mixed Fruit Juice"
-                        description="A perfect blend of seasonal fruits"
-                        bgColor="bg-rose-50"
+                        description="A perfect harmony of seasonal nature's candy. The best of everything in one sip."
+                        bgColor="bg-rose-100"
+                        blobColor="bg-rose-300"
+                        reverse={false}
                     />
 
-                    {/* 4. Watermelon */}
-                    <JuiceCard
+                    {/* 4. Watermelon (Right Image) */}
+                    <JuiceRow
                         image={WatermelonJuiceImg}
                         name="Watermelon Juice"
-                        description="Light, hydrating, and summer-fresh"
-                        bgColor="bg-green-50"
+                        description="Hydrating splash of summer freshness. Light, sweet, and absolutely reviving."
+                        bgColor="bg-green-100"
+                        blobColor="bg-green-300"
+                        reverse={true}
                     />
+
                 </div>
-
-                {/* Disclaimer */}
-                <p className="text-center text-xs text-neutral-400 mt-8 font-medium tracking-wide">
-                    Availability may vary by location and store.
-                </p>
-
             </div>
         </section>
     );
