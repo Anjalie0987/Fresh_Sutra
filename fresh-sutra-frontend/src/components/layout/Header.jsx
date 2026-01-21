@@ -3,10 +3,12 @@ import { NavLink, Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { FiShoppingCart } from 'react-icons/fi';
 import Logo from '../../assets/icons/FreshSutra_Logo.jpg';
+import { useCart } from '../../context/CartContext';
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { totalItems, toggleDrawer } = useCart();
 
     // Handle scroll effect
     useEffect(() => {
@@ -65,7 +67,7 @@ const Header = () => {
                         />
                         <HeaderNavItem
                             text="Find a Store"
-                            to="/stores"
+                            to="/location"
                         />
                     </nav>
                 </div>
@@ -92,11 +94,14 @@ const Header = () => {
                     <button
                         className="relative text-neutral-900 hover:text-secondary transition-colors p-1"
                         aria-label="Cart"
+                        onClick={() => toggleDrawer(true)}
                     >
                         <FiShoppingCart size={22} />
-                        {/* Optional Badge Placeholder
-                         <span className="absolute -top-1 -right-1 bg-secondary-red text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">0</span>
-                         */}
+                        {totalItems > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-secondary-red text-white text-xs w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                                {totalItems}
+                            </span>
+                        )}
                     </button>
                 </div>
 
@@ -104,10 +109,16 @@ const Header = () => {
                 <div className="flex desktop:hidden items-center gap-4">
                     {/* Cart on Mobile */}
                     <button
-                        className="text-neutral-900 hover:text-secondary transition-colors p-1"
+                        className="relative text-neutral-900 hover:text-secondary transition-colors p-1"
                         aria-label="Cart"
+                        onClick={() => toggleDrawer(true)}
                     >
                         <FiShoppingCart size={22} />
+                        {totalItems > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-secondary-red text-white text-xs w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                                {totalItems}
+                            </span>
+                        )}
                     </button>
 
                     {/* Hamburger */}
@@ -145,7 +156,7 @@ const Header = () => {
                         />
                         <HeaderNavItem
                             text="Find a Store"
-                            to="/stores"
+                            to="/location"
                             onClick={handleMobileLinkClick}
                         />
                     </div>

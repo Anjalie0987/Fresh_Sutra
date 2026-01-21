@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import Header from './Header';
+import Footer from './Footer';
+import CartDrawer from '../cart/CartDrawer';
 
 const MainLayout = ({ children, className }) => {
     return (
@@ -14,11 +16,10 @@ const MainLayout = ({ children, className }) => {
             </main>
 
             {/* Semantic Footer */}
-            <footer className="bg-gray-50 border-t border-gray-100 py-12">
-                <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
-                    <p>© {new Date().getFullYear()} Fresh Sutra. All rights reserved.</p>
-                </div>
-            </footer>
+            <Footer />
+
+            {/* Global Cart Drawer */}
+            <CartDrawer />
         </div>
     );
 };
