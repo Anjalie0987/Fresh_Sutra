@@ -61,6 +61,10 @@ const NearbyStores = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStoreId, setSelectedStoreId] = useState(null);
 
+    // Step 7: Route State
+    const [routeStoreId, setRouteStoreId] = useState(null);
+    const [routeInfo, setRouteInfo] = useState(null);
+
     // Step 5: Location State
     const location = useLocation();
     const [isManualMode, setIsManualMode] = useState(false); // Initialized in useEffect to avoid hydration mismatches if needed, but here simple state is fine
@@ -72,6 +76,7 @@ const NearbyStores = () => {
     // Refs
     const mapRef = useRef(null); // Ref for DIV
     const mapInstanceRef = useRef(null); // Ref for Map Instance
+    const directionsRendererRef = useRef(null); // Ref for Renderer (Singleton)
     const searchInputRef = useRef(null); // Ref for Input
     const searchMarkerRef = useRef(null); // Ref for Draggable Marker
     const markersRef = useRef({});
@@ -167,6 +172,17 @@ const NearbyStores = () => {
                 fullscreenControl: false,
                 clickableIcons: false,
             });
+
+            // Initialize DirectionsRenderer ONCE
+            directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+                map: mapInstanceRef.current,
+                suppressMarkers: true,
+                polylineOptions: {
+                    strokeColor: "#4285F4",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.8,
+                },
+            });
         }
 
         // Update Map Center/Markers when mode or location changes
@@ -174,9 +190,14 @@ const NearbyStores = () => {
 
             // 1. Manual Mode: Show Draggable Marker (Search Pin)
             if (isManualMode) {
-                // Clear store markers if any (though likely none yet)
+                // Clear store markers
                 Object.values(markersRef.current).forEach(m => m.setMap(null));
                 markersRef.current = {};
+
+                // Clear Route
+                if (directionsRendererRef.current) {
+                    directionsRendererRef.current.setDirections({ routes: [] });
+                }
 
                 // Ensure center is updated
                 mapInstanceRef.current.panTo(searchLocation);
@@ -210,8 +231,10 @@ const NearbyStores = () => {
                 }
 
                 if (userLocation) {
-                    // Update Map Center
-                    mapInstanceRef.current.panTo(userLocation);
+                    // Update Map Center (Only if NO route active)
+                    if (!routeStoreId) {
+                        mapInstanceRef.current.panTo(userLocation);
+                    }
 
                     // Add/Ensure User Marker
                     new window.google.maps.Marker({
@@ -292,7 +315,7 @@ const NearbyStores = () => {
         if (!store) return;
 
         // 1. Pan Map to Store (List -> Map)
-        if (mapInstanceRef.current) {
+        if (mapInstanceRef.current && !routeStoreId) {
             mapInstanceRef.current.panTo({ lat: store.lat, lng: store.lng });
             mapInstanceRef.current.setZoom(14); // Optional zoom in
         }
@@ -318,6 +341,47 @@ const NearbyStores = () => {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, [selectedStoreId, stores, isManualMode]);
+
+    // Function to Calculate Route
+    const calculateRoute = (store) => {
+        if (!userLocation || !directionsRendererRef.current) return;
+
+        // Ensure renderer is attached to map
+        if (directionsRendererRef.current.getMap() !== mapInstanceRef.current) {
+            directionsRendererRef.current.setMap(mapInstanceRef.current);
+        }
+
+        const directionsService = new window.google.maps.DirectionsService();
+
+        directionsService.route(
+            {
+                origin: userLocation,
+                destination: { lat: store.lat, lng: store.lng },
+                travelMode: window.google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+                if (status === window.google.maps.DirectionsStatus.OK) {
+                    directionsRendererRef.current.setDirections(result);
+
+                    const leg = result.routes[0].legs[0];
+                    setRouteInfo({
+                        distance: leg.distance.text,
+                        duration: leg.duration.text
+                    });
+                } else {
+                    console.error("Directions request failed:", status);
+                    setRouteInfo(null);
+                }
+            }
+        );
+    };
+
+    const handleViewStore = (e, store) => {
+        e.stopPropagation();
+        setSelectedStoreId(store.id);
+        setRouteStoreId(store.id);
+        calculateRoute(store);
+    };
 
     const handleStoreClick = (storeId) => {
         setSelectedStoreId(storeId);
@@ -452,14 +516,28 @@ const NearbyStores = () => {
                                                 </div>
                                             )}
 
-                                            <button className={classNames(
-                                                "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
-                                                selectedStoreId === store.id
-                                                    ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
-                                                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                            )}>
-                                                View Store
-                                            </button>
+                                            <div className="space-y-3">
+                                                {/* Route Info Overlay - Only if this card is the routed one */}
+                                                {routeStoreId === store.id && routeInfo && (
+                                                    <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-center justify-between text-sm">
+                                                        <span className="text-secondary font-bold">{routeInfo.distance}</span>
+                                                        <span className="text-gray-500">•</span>
+                                                        <span className="text-gray-700 font-medium">{routeInfo.duration} to get there</span>
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={(e) => handleViewStore(e, store)}
+                                                    className={classNames(
+                                                        "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
+                                                        selectedStoreId === store.id
+                                                            ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
+                                                            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                                    )}
+                                                >
+                                                    {routeStoreId === store.id ? "View Store" : "View Store"}
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
