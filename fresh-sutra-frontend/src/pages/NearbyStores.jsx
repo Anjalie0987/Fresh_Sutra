@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import classNames from 'classnames';
 import { FiList, FiMap, FiCheckCircle, FiSearch, FiAlertCircle } from 'react-icons/fi';
 import useGoogleMaps from '../hooks/useGoogleMaps';
@@ -61,17 +62,34 @@ const NearbyStores = () => {
     const [selectedStoreId, setSelectedStoreId] = useState(null);
 
     // Step 5: Location State
-    const [userLocation, setUserLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default Delhi
+    const location = useLocation();
+    const [isManualMode, setIsManualMode] = useState(false); // Initialized in useEffect to avoid hydration mismatches if needed, but here simple state is fine
+    const [searchLocation, setSearchLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default for manual map center
+
+    const [userLocation, setUserLocation] = useState(null);
     const [isLocationResolved, setIsLocationResolved] = useState(false);
 
     // Refs
     const mapRef = useRef(null); // Ref for DIV
     const mapInstanceRef = useRef(null); // Ref for Map Instance
+    const searchInputRef = useRef(null); // Ref for Input
+    const searchMarkerRef = useRef(null); // Ref for Draggable Marker
     const markersRef = useRef({});
     const itemRefs = useRef({});
 
+    // Initialize Mode from Navigation State
+    useEffect(() => {
+        if (location.state?.manualLocationMode) {
+            setIsManualMode(true);
+            setIsLocationResolved(true); // Manually resolved as "selecting..."
+        }
+    }, [location.state]);
+
     // Step 5 & 6: Fetch User Location (Check LocalStorage First)
     useEffect(() => {
+        // If in manual mode, DO NOT fetch/check location initially. Wait for user confirmation.
+        if (location.state?.manualLocationMode || isManualMode) return;
+
         // Step 6: Check LocalStorage
         const savedLoc = localStorage.getItem('userLocation');
         if (savedLoc) {
@@ -87,6 +105,7 @@ const NearbyStores = () => {
 
         // Step 5: Fallback to Browser Logic if no saved location
         if (!navigator.geolocation) {
+            setUserLocation({ lat: 28.6139, lng: 77.2090 }); // Default
             setIsLocationResolved(true);
             return;
         }
@@ -101,7 +120,8 @@ const NearbyStores = () => {
             },
             (error) => {
                 console.warn("Location permission denied or error:", error);
-                setIsLocationResolved(true); // Fallback to default
+                setUserLocation({ lat: 28.6139, lng: 77.2090 }); // Fallback
+                setIsLocationResolved(true);
             },
             {
                 enableHighAccuracy: true,
@@ -111,8 +131,10 @@ const NearbyStores = () => {
         );
     }, []);
 
-    // Simulate API Fetch
+    // Simulate API Fetch - Trigger ONLY when userLocation is set
     useEffect(() => {
+        if (!userLocation) return; // Wait for location
+
         const fetchStores = async () => {
             setIsLoading(true);
             try {
@@ -127,60 +149,143 @@ const NearbyStores = () => {
         };
 
         fetchStores();
-    }, []);
+    }, [userLocation]);
 
-    // Initialize Map (Updated for Step 5)
+    // Initialize Map (Updated for Manual Mode)
     useEffect(() => {
-        // Wait for both SDK loaded AND Location resolved
+        // Wait for both SDK loaded AND resolution state
         if (isLoaded && isLocationResolved && mapRef.current && !mapInstanceRef.current) {
 
+            // Determine initial center
+            const center = userLocation || searchLocation;
+
             mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-                center: userLocation, // Dynamic Center
+                center: center,
                 zoom: 13,
                 mapTypeControl: false,
                 streetViewControl: false,
                 fullscreenControl: false,
                 clickableIcons: false,
             });
+        }
 
-            // Add User Location Marker (Dynamic Position)
-            new window.google.maps.Marker({
-                position: userLocation,
-                map: mapInstanceRef.current,
-                title: "You are here",
-                icon: {
-                    path: window.google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor: "#4285F4",
-                    fillOpacity: 1,
-                    strokeColor: "white",
-                    strokeWeight: 2,
-                },
+        // Update Map Center/Markers when mode or location changes
+        if (mapInstanceRef.current) {
+
+            // 1. Manual Mode: Show Draggable Marker (Search Pin)
+            if (isManualMode) {
+                // Clear store markers if any (though likely none yet)
+                Object.values(markersRef.current).forEach(m => m.setMap(null));
+                markersRef.current = {};
+
+                // Ensure center is updated
+                mapInstanceRef.current.panTo(searchLocation);
+
+                // Create or Update Search Marker
+                if (!searchMarkerRef.current) {
+                    searchMarkerRef.current = new window.google.maps.Marker({
+                        position: searchLocation,
+                        map: mapInstanceRef.current,
+                        draggable: true,
+                        title: "Drag to adjust location",
+                        animation: window.google.maps.Animation.DROP,
+                    });
+
+                    // Drag Listener
+                    searchMarkerRef.current.addListener("dragend", (event) => {
+                        const newLat = event.latLng.lat();
+                        const newLng = event.latLng.lng();
+                        setSearchLocation({ lat: newLat, lng: newLng });
+                    });
+                } else {
+                    searchMarkerRef.current.setPosition(searchLocation);
+                    searchMarkerRef.current.setMap(mapInstanceRef.current);
+                }
+
+            } else {
+                // 2. Normal Mode: Show User Location & Stores
+                if (searchMarkerRef.current) {
+                    searchMarkerRef.current.setMap(null); // Hide search marker
+                    searchMarkerRef.current = null;
+                }
+
+                if (userLocation) {
+                    // Update Map Center
+                    mapInstanceRef.current.panTo(userLocation);
+
+                    // Add/Ensure User Marker
+                    new window.google.maps.Marker({
+                        position: userLocation,
+                        map: mapInstanceRef.current,
+                        title: "You are here",
+                        icon: {
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: "#4285F4",
+                            fillOpacity: 1,
+                            strokeColor: "white",
+                            strokeWeight: 2,
+                        },
+                    });
+
+                    // Add Static Store Markers (Step 3 & 4)
+                    STATIC_MAP_STORES.forEach(store => {
+                        if (!markersRef.current[store.id]) { // Avoid dupes
+                            const marker = new window.google.maps.Marker({
+                                position: { lat: store.lat, lng: store.lng },
+                                map: mapInstanceRef.current,
+                                title: store.name,
+                                clickable: true,
+                            });
+
+                            // Marker Click Listener (Step 4 - Map -> List)
+                            marker.addListener("click", () => {
+                                setSelectedStoreId(store.id);
+                            });
+
+                            markersRef.current[store.id] = marker;
+                        }
+                    });
+                }
+            }
+        }
+
+    }, [isLoaded, isLocationResolved, isManualMode, userLocation, searchLocation]);
+
+
+    // Initialize Autocomplete (Only in Manual Mode)
+    useEffect(() => {
+        if (isLoaded && isManualMode && searchInputRef.current) {
+            const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+                fields: ["geometry", "formatted_address"],
             });
 
-            // Add Static Store Markers (Step 3 & 4)
-            STATIC_MAP_STORES.forEach(store => {
-                const marker = new window.google.maps.Marker({
-                    position: { lat: store.lat, lng: store.lng },
-                    map: mapInstanceRef.current,
-                    title: store.name,
-                    clickable: true,
-                });
-
-                // Marker Click Listener (Step 4 - Map -> List)
-                marker.addListener("click", () => {
-                    setSelectedStoreId(store.id);
-                });
-
-                markersRef.current[store.id] = marker;
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (place.geometry && place.geometry.location) {
+                    const lat = place.geometry.location.lat();
+                    const lng = place.geometry.location.lng();
+                    setSearchLocation({ lat, lng });
+                    // Map update handled by main useEffect via searchLocation dependency
+                }
             });
         }
-    }, [isLoaded, isLocationResolved]); // Added userLocation dependency implicitly via isLocationResolved logic (run once when resolved)
+    }, [isLoaded, isManualMode]);
+
+
+    // Confirm Location Logic
+    const confirmManualLocation = () => {
+        const finalLocation = searchLocation;
+        setUserLocation(finalLocation);
+        localStorage.setItem('userLocation', JSON.stringify(finalLocation));
+        setIsManualMode(false);
+        // This will trigger fetchStores via useEffect([userLocation])
+    };
 
     // Handle Selection Sync (Step 4)
     useEffect(() => {
         // Guard clauses
-        if (!selectedStoreId) return;
+        if (!selectedStoreId || isManualMode) return;
 
         // Find store data
         const store = stores.find(s => s.id === selectedStoreId);
@@ -212,7 +317,7 @@ const NearbyStores = () => {
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [selectedStoreId, stores]);
+    }, [selectedStoreId, stores, isManualMode]);
 
     const handleStoreClick = (storeId) => {
         setSelectedStoreId(storeId);
@@ -260,77 +365,113 @@ const NearbyStores = () => {
                     )}
                 >
                     <div className="p-4 md:p-6 lg:p-8 min-h-full">
-                        <div className="mb-6">
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                                Juice Stores Near You
-                            </h1>
-                            <p className="text-gray-500 text-sm">
-                                Find the closest Fresh Sutra outlet and order fresh.
-                            </p>
-                        </div>
+                        {isManualMode ? (
+                            // MANUAL MODE UI
+                            <div className="mb-6">
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                                    Enter Location
+                                </h1>
+                                <p className="text-gray-500 text-sm mb-6">
+                                    Search or drag the pin to set your delivery location.
+                                </p>
 
-                        {/* CONTENT STATES */}
-                        <div className="space-y-4">
-                            {isLoading ? (
-                                // LOADING SKELETONS
-                                <>
-                                    <StoreCardSkeleton />
-                                    <StoreCardSkeleton />
-                                    <StoreCardSkeleton />
-                                    <StoreCardSkeleton />
-                                </>
-                            ) : stores.length > 0 ? (
-                                // STORE LIST
-                                stores.map((store) => (
-                                    <div
-                                        key={store.id}
-                                        ref={el => itemRefs.current[store.id] = el}
-                                        onClick={() => handleStoreClick(store.id)}
-                                        className={classNames(
-                                            "bg-white border rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer group",
-                                            selectedStoreId === store.id
-                                                ? "border-secondary ring-1 ring-secondary shadow-md bg-orange-50/10"
-                                                : "border-gray-100 hover:shadow-md hover:border-gray-200"
-                                        )}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className={classNames(
-                                                "text-lg font-bold transition-colors",
-                                                selectedStoreId === store.id ? "text-secondary" : "text-gray-800 group-hover:text-secondary"
-                                            )}>
-                                                {store.name}
-                                            </h3>
-                                            <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                                                {store.distance}
-                                            </span>
-                                        </div>
-
-                                        {store.isFSSAI && (
-                                            <div className="flex items-center gap-1.5 text-green-600 mb-4">
-                                                <FiCheckCircle size={14} />
-                                                <span className="text-xs font-semibold uppercase tracking-wide">FSSAI Verified</span>
-                                            </div>
-                                        )}
-
-                                        <button className={classNames(
-                                            "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
-                                            selectedStoreId === store.id
-                                                ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
-                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                        )}>
-                                            View Store
-                                        </button>
+                                {/* Search Input */}
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiSearch className="text-gray-400" size={20} />
                                     </div>
-                                ))
-                            ) : (
-                                // EMPTY STATE
-                                <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
-                                    <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
-                                    <p className="text-gray-500 text-sm">We couldn't find any juice stores near your location.</p>
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        placeholder="Search for a location..."
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary focus:border-transparent outline-none shadow-sm transition-all"
+                                    />
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Confirm Button */}
+                                <button
+                                    onClick={confirmManualLocation}
+                                    className="w-full py-3.5 bg-secondary text-white font-bold rounded-xl shadow-lg hover:bg-yellow-600 transition-all transform active:scale-[0.98]"
+                                >
+                                    Confirm Location
+                                </button>
+                            </div>
+                        ) : (
+                            // NORMAL MODE UI
+                            <div className="mb-6">
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                                    Juice Stores Near You
+                                </h1>
+                                <p className="text-gray-500 text-sm">
+                                    Find the closest Fresh Sutra outlet and order fresh.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* CONTENT STATES - Only show list if NOT in manual mode */}
+                        {!isManualMode && (
+                            <div className="space-y-4">
+                                {isLoading ? (
+                                    // LOADING SKELETONS
+                                    <>
+                                        <StoreCardSkeleton />
+                                        <StoreCardSkeleton />
+                                        <StoreCardSkeleton />
+                                        <StoreCardSkeleton />
+                                    </>
+                                ) : stores.length > 0 ? (
+                                    // STORE LIST
+                                    stores.map((store) => (
+                                        <div
+                                            key={store.id}
+                                            ref={el => itemRefs.current[store.id] = el}
+                                            onClick={() => handleStoreClick(store.id)}
+                                            className={classNames(
+                                                "bg-white border rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer group",
+                                                selectedStoreId === store.id
+                                                    ? "border-secondary ring-1 ring-secondary shadow-md bg-orange-50/10"
+                                                    : "border-gray-100 hover:shadow-md hover:border-gray-200"
+                                            )}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className={classNames(
+                                                    "text-lg font-bold transition-colors",
+                                                    selectedStoreId === store.id ? "text-secondary" : "text-gray-800 group-hover:text-secondary"
+                                                )}>
+                                                    {store.name}
+                                                </h3>
+                                                <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                                                    {store.distance}
+                                                </span>
+                                            </div>
+
+                                            {store.isFSSAI && (
+                                                <div className="flex items-center gap-1.5 text-green-600 mb-4">
+                                                    <FiCheckCircle size={14} />
+                                                    <span className="text-xs font-semibold uppercase tracking-wide">FSSAI Verified</span>
+                                                </div>
+                                            )}
+
+                                            <button className={classNames(
+                                                "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
+                                                selectedStoreId === store.id
+                                                    ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
+                                                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                            )}>
+                                                View Store
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    // EMPTY STATE
+                                    <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
+                                        <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
+                                        <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
+                                        <p className="text-gray-500 text-sm">We couldn't find any juice stores near your location.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

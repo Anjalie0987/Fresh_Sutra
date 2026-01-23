@@ -32,11 +32,7 @@ const LocationAccess = () => {
     };
 
     const handleManualLocation = () => {
-        // Static mapping for manual entry (e.g. simulating user chose "New Delhi")
-        // Using the same default coordinates for now as per "static mapping is fine"
-        const manualLoc = { lat: 28.6139, lng: 77.2090 };
-        localStorage.setItem('userLocation', JSON.stringify(manualLoc));
-        navigate('/stores-near-you');
+        navigate('/stores-near-you', { state: { manualLocationMode: true } });
     };
 
     return (
