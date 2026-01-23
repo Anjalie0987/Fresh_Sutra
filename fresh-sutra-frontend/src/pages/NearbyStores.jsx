@@ -23,6 +23,34 @@ const StoreCardSkeleton = () => (
     </div>
 );
 
+// Static Store Data for Step 3 & 4 (Enriched with UI fields)
+const STATIC_MAP_STORES = [
+    {
+        id: "store-1",
+        name: "Fresh Sutra – Connaught Place",
+        lat: 28.6315,
+        lng: 77.2167,
+        distance: "2.5 km",
+        isFSSAI: true
+    },
+    {
+        id: "store-2",
+        name: "Fresh Sutra – Karol Bagh",
+        lat: 28.6519,
+        lng: 77.1907,
+        distance: "4.8 km",
+        isFSSAI: true
+    },
+    {
+        id: "store-3",
+        name: "Fresh Sutra – Lajpat Nagar",
+        lat: 28.5672,
+        lng: 77.2433,
+        distance: "6.2 km",
+        isFSSAI: true
+    }
+];
+
 const NearbyStores = () => {
     const [activeView, setActiveView] = useState('list'); // 'list' or 'map'
     const { isLoaded, loadError } = useGoogleMaps();
@@ -32,11 +60,56 @@ const NearbyStores = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStoreId, setSelectedStoreId] = useState(null);
 
+    // Step 5: Location State
+    const [userLocation, setUserLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default Delhi
+    const [isLocationResolved, setIsLocationResolved] = useState(false);
+
     // Refs
-    const mapRef = useRef(null);
-    const mapInstanceRef = useRef(null);
+    const mapRef = useRef(null); // Ref for DIV
+    const mapInstanceRef = useRef(null); // Ref for Map Instance
     const markersRef = useRef({});
     const itemRefs = useRef({});
+
+    // Step 5 & 6: Fetch User Location (Check LocalStorage First)
+    useEffect(() => {
+        // Step 6: Check LocalStorage
+        const savedLoc = localStorage.getItem('userLocation');
+        if (savedLoc) {
+            try {
+                setUserLocation(JSON.parse(savedLoc));
+                setIsLocationResolved(true);
+                return; // precise return to avoid re-fetching
+            } catch (e) {
+                console.error("Error parsing saved location", e);
+                localStorage.removeItem('userLocation');
+            }
+        }
+
+        // Step 5: Fallback to Browser Logic if no saved location
+        if (!navigator.geolocation) {
+            setIsLocationResolved(true);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                setIsLocationResolved(true);
+            },
+            (error) => {
+                console.warn("Location permission denied or error:", error);
+                setIsLocationResolved(true); // Fallback to default
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    }, []);
 
     // Simulate API Fetch
     useEffect(() => {
@@ -44,8 +117,8 @@ const NearbyStores = () => {
             setIsLoading(true);
             try {
                 // Simulate network delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                setStores(MOCK_STORES);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                setStores(STATIC_MAP_STORES);
             } catch (err) {
                 console.error("Failed to fetch stores", err);
             } finally {
@@ -56,21 +129,23 @@ const NearbyStores = () => {
         fetchStores();
     }, []);
 
-    // Initialize Map
+    // Initialize Map (Updated for Step 5)
     useEffect(() => {
-        if (isLoaded && mapRef.current && !mapInstanceRef.current) {
+        // Wait for both SDK loaded AND Location resolved
+        if (isLoaded && isLocationResolved && mapRef.current && !mapInstanceRef.current) {
+
             mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-                center: { lat: 28.4595, lng: 77.0266 }, // Mock coordinates (Gurgaon)
-                zoom: 14,
+                center: userLocation, // Dynamic Center
+                zoom: 13,
                 mapTypeControl: false,
                 streetViewControl: false,
                 fullscreenControl: false,
                 clickableIcons: false,
             });
 
-            // Add User Location Marker
+            // Add User Location Marker (Dynamic Position)
             new window.google.maps.Marker({
-                position: { lat: 28.4595, lng: 77.0266 },
+                position: userLocation,
                 map: mapInstanceRef.current,
                 title: "You are here",
                 icon: {
@@ -82,63 +157,65 @@ const NearbyStores = () => {
                     strokeWeight: 2,
                 },
             });
+
+            // Add Static Store Markers (Step 3 & 4)
+            STATIC_MAP_STORES.forEach(store => {
+                const marker = new window.google.maps.Marker({
+                    position: { lat: store.lat, lng: store.lng },
+                    map: mapInstanceRef.current,
+                    title: store.name,
+                    clickable: true,
+                });
+
+                // Marker Click Listener (Step 4 - Map -> List)
+                marker.addListener("click", () => {
+                    setSelectedStoreId(store.id);
+                });
+
+                markersRef.current[store.id] = marker;
+            });
         }
-    }, [isLoaded]);
+    }, [isLoaded, isLocationResolved]); // Added userLocation dependency implicitly via isLocationResolved logic (run once when resolved)
 
-    // Update Markers when stores change or map is ready
+    // Handle Selection Sync (Step 4)
     useEffect(() => {
-        if (!mapInstanceRef.current || stores.length === 0) return;
+        // Guard clauses
+        if (!selectedStoreId) return;
 
-        // Clear existing markers if any (though currently we just load once)
-        // In a real app with filters, we'd clear markersRef.current here first
-
-        stores.forEach(store => {
-            if (markersRef.current[store.id]) return; // Already exists
-
-            const marker = new window.google.maps.Marker({
-                position: { lat: store.lat, lng: store.lng },
-                map: mapInstanceRef.current,
-                title: store.name,
-            });
-
-            marker.addListener("click", () => {
-                setSelectedStoreId(store.id);
-            });
-
-            markersRef.current[store.id] = marker;
-        });
-
-    }, [stores, isLoaded]);
-
-    // Handle Selection Sync
-    useEffect(() => {
-        if (!selectedStoreId || !mapInstanceRef.current) return;
-
+        // Find store data
         const store = stores.find(s => s.id === selectedStoreId);
         if (!store) return;
 
-        mapInstanceRef.current.panTo({ lat: store.lat, lng: store.lng });
+        // 1. Pan Map to Store (List -> Map)
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.panTo({ lat: store.lat, lng: store.lng });
+            mapInstanceRef.current.setZoom(14); // Optional zoom in
+        }
 
-        Object.keys(markersRef.current).forEach(id => {
-            const marker = markersRef.current[id];
-            if (parseInt(id) === selectedStoreId) {
-                marker.setIcon('http://maps.google.com/mapfiles/ms/icons/green-dot.png');
-                marker.setAnimation(window.google.maps.Animation.BOUNCE);
-                setTimeout(() => marker.setAnimation(null), 750);
-            } else {
-                marker.setIcon(null);
-            }
-        });
+        // 2. Highlight Marker (List -> Map)
+        if (markersRef.current) {
+            Object.keys(markersRef.current).forEach(id => {
+                const marker = markersRef.current[id];
+                if (marker) {
+                    if (id === selectedStoreId) {
+                        marker.setAnimation(window.google.maps.Animation.BOUNCE);
+                        setTimeout(() => marker.setAnimation(null), 1500);
+                    } else {
+                        marker.setAnimation(null);
+                    }
+                }
+            });
+        }
 
-        // Scroll list if ref exists
+        // 3. Scroll List to Item (Map -> List)
         const el = itemRefs.current[selectedStoreId];
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [selectedStoreId, stores]); // Added stores dependency just in case
+    }, [selectedStoreId, stores]);
 
-    const handleStoreClick = (id) => {
-        setSelectedStoreId(id);
+    const handleStoreClick = (storeId) => {
+        setSelectedStoreId(storeId);
     };
 
     return (
@@ -264,7 +341,7 @@ const NearbyStores = () => {
                         activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
                     )}
                 >
-                    {!isLoaded ? (
+                    {!isLoaded || !isLocationResolved ? ( // Updated Loading Condition
                         <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
                             <div className="text-center">
                                 <p>Loading map...</p>

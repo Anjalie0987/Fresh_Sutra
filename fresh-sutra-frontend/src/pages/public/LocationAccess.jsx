@@ -5,8 +5,38 @@ const LocationAccess = () => {
     const navigate = useNavigate();
 
     const handleEnableLocation = () => {
-        // Simulate permission approval
-        navigate('/');
+        if (!navigator.geolocation) {
+            // Fallback if geolocation is not supported
+            localStorage.setItem('userLocation', JSON.stringify({ lat: 28.6139, lng: 77.2090 }));
+            navigate('/stores-near-you');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const loc = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                localStorage.setItem('userLocation', JSON.stringify(loc));
+                navigate('/stores-near-you');
+            },
+            (error) => {
+                console.warn("Location access denied/error:", error);
+                // Fallback to coordinates
+                const fallback = { lat: 28.6139, lng: 77.2090 };
+                localStorage.setItem('userLocation', JSON.stringify(fallback));
+                navigate('/stores-near-you');
+            }
+        );
+    };
+
+    const handleManualLocation = () => {
+        // Static mapping for manual entry (e.g. simulating user chose "New Delhi")
+        // Using the same default coordinates for now as per "static mapping is fine"
+        const manualLoc = { lat: 28.6139, lng: 77.2090 };
+        localStorage.setItem('userLocation', JSON.stringify(manualLoc));
+        navigate('/stores-near-you');
     };
 
     return (
@@ -37,6 +67,7 @@ const LocationAccess = () => {
 
                 {/* Secondary: Manual Entry */}
                 <button
+                    onClick={handleManualLocation}
                     className="w-full py-4 bg-transparent text-neutral-500 font-semibold hover:text-neutral-800 transition-colors"
                 >
                     Enter Location Manually
