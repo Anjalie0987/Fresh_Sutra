@@ -4,14 +4,9 @@ import classNames from 'classnames';
 import { FiList, FiMap, FiCheckCircle, FiSearch, FiAlertCircle } from 'react-icons/fi';
 import useGoogleMaps from '../hooks/useGoogleMaps';
 
-// Mock Data (Moved outside to simulate API response source)
-const MOCK_STORES = [
-    { id: 1, name: 'Juice Junction', distance: '0.8 km away', isFSSAI: true, lat: 28.4600, lng: 77.0270 },
-    { id: 2, name: 'Fresh Sip Corner', distance: '1.2 km away', isFSSAI: true, lat: 28.4580, lng: 77.0250 },
-    { id: 3, name: 'Green Delight Juices', distance: '2.5 km away', isFSSAI: true, lat: 28.4620, lng: 77.0280 },
-    { id: 4, name: 'Daily Fresh Bar', distance: '3.1 km away', isFSSAI: true, lat: 28.4550, lng: 77.0240 },
-    { id: 5, name: 'Nature Sip House', distance: '4.0 km away', isFSSAI: true, lat: 28.4650, lng: 77.0300 },
-];
+import { fetchNearbyStores } from '../services/storeApi';
+
+
 
 const StoreCardSkeleton = () => (
     <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm animate-pulse">
@@ -24,33 +19,7 @@ const StoreCardSkeleton = () => (
     </div>
 );
 
-// Static Store Data for Step 3 & 4 (Enriched with UI fields)
-const STATIC_MAP_STORES = [
-    {
-        id: "store-1",
-        name: "Fresh Sutra – Connaught Place",
-        lat: 28.6315,
-        lng: 77.2167,
-        distance: "2.5 km",
-        isFSSAI: true
-    },
-    {
-        id: "store-2",
-        name: "Fresh Sutra – Karol Bagh",
-        lat: 28.6519,
-        lng: 77.1907,
-        distance: "4.8 km",
-        isFSSAI: true
-    },
-    {
-        id: "store-3",
-        name: "Fresh Sutra – Lajpat Nagar",
-        lat: 28.5672,
-        lng: 77.2433,
-        distance: "6.2 km",
-        isFSSAI: true
-    }
-];
+
 
 const NearbyStores = () => {
     const [activeView, setActiveView] = useState('list'); // 'list' or 'map'
@@ -140,20 +109,21 @@ const NearbyStores = () => {
     useEffect(() => {
         if (!userLocation) return; // Wait for location
 
-        const fetchStores = async () => {
+        const loadStores = async () => {
             setIsLoading(true);
             try {
-                // Simulate network delay
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setStores(STATIC_MAP_STORES);
+                // Fetch stores from backend with 15km radius
+                const data = await fetchNearbyStores(userLocation.lat, userLocation.lng, 15);
+                setStores(data);
             } catch (err) {
                 console.error("Failed to fetch stores", err);
+                setStores([]); // Ensure empty state on error
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchStores();
+        loadStores();
     }, [userLocation]);
 
     // Initialize Map (Updated for Manual Mode)
@@ -251,11 +221,11 @@ const NearbyStores = () => {
                         },
                     });
 
-                    // Add Static Store Markers (Step 3 & 4)
-                    STATIC_MAP_STORES.forEach(store => {
+                    // Add Backend Store Markers
+                    stores.forEach(store => {
                         if (!markersRef.current[store.id]) { // Avoid dupes
                             const marker = new window.google.maps.Marker({
-                                position: { lat: store.lat, lng: store.lng },
+                                position: { lat: store.latitude, lng: store.longitude },
                                 map: mapInstanceRef.current,
                                 title: store.name,
                                 clickable: true,
@@ -314,9 +284,8 @@ const NearbyStores = () => {
         const store = stores.find(s => s.id === selectedStoreId);
         if (!store) return;
 
-        // 1. Pan Map to Store (List -> Map)
         if (mapInstanceRef.current && !routeStoreId) {
-            mapInstanceRef.current.panTo({ lat: store.lat, lng: store.lng });
+            mapInstanceRef.current.panTo({ lat: store.latitude, lng: store.longitude });
             mapInstanceRef.current.setZoom(14); // Optional zoom in
         }
 
@@ -356,7 +325,7 @@ const NearbyStores = () => {
         directionsService.route(
             {
                 origin: userLocation,
-                destination: { lat: store.lat, lng: store.lng },
+                destination: { lat: store.latitude, lng: store.longitude },
                 travelMode: window.google.maps.TravelMode.DRIVING,
             },
             (result, status) => {
@@ -505,7 +474,7 @@ const NearbyStores = () => {
                                                     {store.name}
                                                 </h3>
                                                 <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                                                    {store.distance}
+                                                    {store.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : 'Calculating...'}
                                                 </span>
                                             </div>
 
