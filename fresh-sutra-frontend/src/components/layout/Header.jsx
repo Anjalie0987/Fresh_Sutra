@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
-import { FiShoppingCart } from 'react-icons/fi';
+import { FiShoppingCart, FiUser, FiLogOut } from 'react-icons/fi';
 import Logo from '../../assets/icons/FreshSutra_Logo.jpg';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { totalItems, toggleDrawer } = useCart();
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
 
     // Handle scroll effect
     useEffect(() => {
@@ -76,19 +79,42 @@ const Header = () => {
                 <div className="hidden desktop:flex items-center gap-6 md:gap-8 bg-transparent">
                     {/* Join Us Link */}
                     <Link
-                        to="/join"
+                        to="/join-us"
                         className="text-sm font-bold text-neutral-800 hover:text-secondary-red transition-colors uppercase tracking-wide"
                     >
                         Join Us
                     </Link>
 
-                    {/* Login / Sign Up Button */}
-                    <Link
-                        to="/login"
-                        className="px-6 py-2.5 bg-secondary text-white rounded-full text-sm font-bold hover:bg-yellow-600 transition-all shadow-md hover:shadow-lg active:scale-95 uppercase tracking-wide"
-                    >
-                        Login / Sign Up
-                    </Link>
+                    {/* Auth Section */}
+                    {isAuthenticated ? (
+                        <div className="flex items-center gap-4">
+                            {user?.role === 'ADMIN' && (
+                                <Link to="/admin/dashboard" className="text-sm font-bold text-neutral-800 hover:text-secondary-red uppercase tracking-wide">
+                                    Dashboard
+                                </Link>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-neutral-800 hidden lg:block">Hi, {user?.name.split(' ')[0]}</span>
+                                <button
+                                    onClick={() => {
+                                        logout();
+                                        navigate('/');
+                                    }}
+                                    className="p-2 text-neutral-600 hover:text-red-500 transition-colors"
+                                    title="Logout"
+                                >
+                                    <FiLogOut size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <Link
+                            to="/login"
+                            className="px-6 py-2.5 bg-secondary text-white rounded-full text-sm font-bold hover:bg-yellow-600 transition-all shadow-md hover:shadow-lg active:scale-95 uppercase tracking-wide"
+                        >
+                            Login / Sign Up
+                        </Link>
+                    )}
 
                     {/* Cart Icon */}
                     <button
@@ -164,20 +190,45 @@ const Header = () => {
                     <div className="w-full h-px bg-neutral-100 my-2"></div>
 
                     <Link
-                        to="/join"
+                        to="/join-us"
                         onClick={handleMobileLinkClick}
                         className="text-lg font-bold text-neutral-800 hover:text-secondary-red transition-colors uppercase tracking-wide"
                     >
                         Join Us
                     </Link>
 
-                    <Link
-                        to="/login"
-                        onClick={handleMobileLinkClick}
-                        className="px-8 py-3 bg-secondary text-white rounded-full text-lg font-bold hover:bg-yellow-600 shadow-md w-full max-w-xs uppercase tracking-wide"
-                    >
-                        Login / Sign Up
-                    </Link>
+                    {isAuthenticated ? (
+                        <div className="flex flex-col gap-4 w-full items-center">
+                            {user?.role === 'ADMIN' && (
+                                <Link
+                                    to="/admin/dashboard"
+                                    onClick={handleMobileLinkClick}
+                                    className="text-lg font-bold text-neutral-800 hover:text-secondary-red transition-colors uppercase tracking-wide"
+                                >
+                                    Dashboard
+                                </Link>
+                            )}
+                            <span className="text-lg font-bold text-neutral-800">Hi, {user?.name}</span>
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    navigate('/');
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="px-8 py-3 bg-gray-100 text-neutral-800 rounded-full text-lg font-bold hover:bg-gray-200 uppercase tracking-wide w-full max-w-xs"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        <Link
+                            to="/login"
+                            onClick={handleMobileLinkClick}
+                            className="px-8 py-3 bg-secondary text-white rounded-full text-lg font-bold hover:bg-yellow-600 shadow-md w-full max-w-xs uppercase tracking-wide"
+                        >
+                            Login / Sign Up
+                        </Link>
+                    )}
                 </nav>
             </div>
         </header>

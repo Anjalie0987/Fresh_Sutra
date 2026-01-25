@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import FloatingCartPreview from '../components/FloatingCartPreview';
 import { useCart } from '../context/CartContext';
 
 const StoreDetail = () => {
     const { storeId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loaded, setLoaded] = useState(false);
+
+    const handlePlaceOrderSimulation = () => {
+        navigate('/order-success');
+    };
 
     // Global Cart State
     const { cartItems, addToCart, updateQuantity, toggleDrawer, totalItems } = useCart();
@@ -96,7 +101,7 @@ const StoreDetail = () => {
 
     const store = {
         id: storeId,
-        name: "Fresh Sutra - Indiranagar",
+        name: location.state?.storeName || "Fresh Sutra - Indiranagar",
         distance: "0.8 km",
         isFssaiVerified: true,
         address: "123, 100 Feet Rd, Indiranagar, Bengaluru",
@@ -323,6 +328,16 @@ const StoreDetail = () => {
                 </div>
             </div>
 
+            {/* Simulated Place Order Button */}
+            <div className="container mx-auto px-5 mb-20 text-center">
+                <button
+                    onClick={handlePlaceOrderSimulation}
+                    className="w-full md:w-auto px-8 py-4 bg-green-600 text-white font-bold rounded-2xl shadow-lg hover:bg-green-700 transition-transform transform active:scale-95 text-lg"
+                >
+                    Place Order (Demo)
+                </button>
+            </div>
+
             {/* 🛒 Floating Cart Preview (Blinkit Style) */}
             <FloatingCartPreview
                 totalItems={totalItems}
@@ -365,7 +380,7 @@ const StoreDetail = () => {
         }
       `}</style>
 
-        </div>
+        </div >
     );
 };
 

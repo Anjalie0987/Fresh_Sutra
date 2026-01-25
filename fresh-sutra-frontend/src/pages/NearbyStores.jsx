@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
 import { FiList, FiMap, FiCheckCircle, FiSearch, FiAlertCircle } from 'react-icons/fi';
 import useGoogleMaps from '../hooks/useGoogleMaps';
@@ -36,8 +36,14 @@ const NearbyStores = () => {
 
     // Step 5: Location State
     const location = useLocation();
+    const navigate = useNavigate();
     const [isManualMode, setIsManualMode] = useState(false); // Initialized in useEffect to avoid hydration mismatches if needed, but here simple state is fine
     const [searchLocation, setSearchLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default for manual map center
+
+    const handleSeeMenu = (e, store) => {
+        e.stopPropagation();
+        navigate(`/store/${store.id}`, { state: { storeName: store.name } });
+    };
 
     const [userLocation, setUserLocation] = useState(null);
     const [isLocationResolved, setIsLocationResolved] = useState(false);
@@ -49,6 +55,7 @@ const NearbyStores = () => {
     const searchInputRef = useRef(null); // Ref for Input
     const searchMarkerRef = useRef(null); // Ref for Draggable Marker
     const markersRef = useRef({});
+    const storeMarkerRef = useRef(null); // Ref for Red Destination Marker
     const itemRefs = useRef({});
 
     // Initialize Mode from Navigation State
@@ -107,6 +114,7 @@ const NearbyStores = () => {
 
     // Simulate API Fetch - Trigger ONLY when userLocation is set
     useEffect(() => {
+        console.log("USER LOCATION UPDATED:", userLocation);
         if (!userLocation) return; // Wait for location
 
         const loadStores = async () => {
@@ -276,7 +284,14 @@ const NearbyStores = () => {
     };
 
     // Handle Selection Sync (Step 4)
+    // Handle Selection Sync (Step 4 & Red Marker Logic)
     useEffect(() => {
+        // 1. Cleanup Red Marker (Always happen on change)
+        if (storeMarkerRef.current) {
+            storeMarkerRef.current.setMap(null);
+            storeMarkerRef.current = null;
+        }
+
         // Guard clauses
         if (!selectedStoreId || isManualMode) return;
 
@@ -284,12 +299,26 @@ const NearbyStores = () => {
         const store = stores.find(s => s.id === selectedStoreId);
         if (!store) return;
 
-        if (mapInstanceRef.current && !routeStoreId) {
-            mapInstanceRef.current.panTo({ lat: store.latitude, lng: store.longitude });
-            mapInstanceRef.current.setZoom(14); // Optional zoom in
+        if (mapInstanceRef.current) {
+            // Pan if not routing
+            if (!routeStoreId) {
+                mapInstanceRef.current.panTo({ lat: store.latitude, lng: store.longitude });
+                mapInstanceRef.current.setZoom(14);
+            }
+
+            // Create Red Marker for Selection/Route
+            storeMarkerRef.current = new window.google.maps.Marker({
+                position: { lat: store.latitude, lng: store.longitude },
+                map: mapInstanceRef.current,
+                title: store.name,
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                },
+                animation: window.google.maps.Animation.DROP
+            });
         }
 
-        // 2. Highlight Marker (List -> Map)
+        // 2. Highlight Marker (List -> Map) - Bounces proper blue marker if exists
         if (markersRef.current) {
             Object.keys(markersRef.current).forEach(id => {
                 const marker = markersRef.current[id];
@@ -309,7 +338,7 @@ const NearbyStores = () => {
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [selectedStoreId, stores, isManualMode]);
+    }, [selectedStoreId, stores, isManualMode, routeStoreId]);
 
     // Function to Calculate Route
     const calculateRoute = (store) => {
@@ -505,6 +534,13 @@ const NearbyStores = () => {
                                                     )}
                                                 >
                                                     {routeStoreId === store.id ? "View Store" : "View Store"}
+                                                </button>
+
+                                                <button
+                                                    onClick={(e) => handleSeeMenu(e, store)}
+                                                    className="w-full py-2 rounded-lg text-sm font-semibold transition-colors bg-secondary text-white hover:bg-yellow-600 shadow-sm mt-2"
+                                                >
+                                                    See Menu
                                                 </button>
                                             </div>
                                         </div>

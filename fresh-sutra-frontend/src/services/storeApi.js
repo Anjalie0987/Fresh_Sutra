@@ -16,6 +16,7 @@ export const fetchNearbyStores = async (lat, lng, radius = 10) => {
         const response = await fetch(`${API_BASE_URL}/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
 
         if (!response.ok) {
+            console.error("API failed", response.status);
             throw new Error(`Error fetching stores: ${response.statusText}`);
         }
 
