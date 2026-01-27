@@ -4,6 +4,7 @@ import cors from "cors";
 import storeRoutes from "./routes/store.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import protectedRoutes from "./routes/protected.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/api/stores", storeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/protected", protectedRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check route
 app.get("/health", (req, res) => {

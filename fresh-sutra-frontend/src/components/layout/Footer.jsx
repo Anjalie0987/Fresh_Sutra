@@ -56,7 +56,7 @@ const Footer = () => {
                             <FooterLink to="/about" text="About Us" />
                             <FooterLink to="/location" text="Find a Store" />
                             <FooterLink to="/offers" text="Offers & Rewards" />
-                            <FooterLink to="/contact" text="Contact Us" />
+                            <FooterLink to="/contact-us" text="Contact Us" />
                         </div>
                     </div>
 
@@ -66,7 +66,7 @@ const Footer = () => {
                         <div className="flex flex-col">
                             <FooterLink to="/help" text="Help / Support" />
                             <FooterLink to="/privacy-policy" text="Privacy Policy" />
-                            <FooterLink to="/terms-conditions" text="Terms & Conditions" />
+                            <FooterLink to="/terms-and-conditions" text="Terms & Conditions" />
                             <FooterLink to="/refund-policy" text="Refund Policy" />
                             <FooterLink to="/fssai-compliance" text="FSSAI Compliance" />
                         </div>
@@ -81,10 +81,10 @@ const Footer = () => {
                             <SocialIcon Icon={FaLinkedinIn} href="https://linkedin.com" />
                         </div>
                         <a
-                            href="mailto:support@freshsutra.com"
+                            href="mailto:freshsutra88@gmail.com"
                             className="text-gray-400 text-sm hover:text-[#FF8C00] transition-colors"
                         >
-                            support@freshsutra.com
+                            freshsutra88@gmail.com
                         </a>
                     </div>
                 </div>

@@ -5,6 +5,7 @@ import SEO from './components/common/SEO';
 import { CartProvider } from './context/CartContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 
 // Page Imports
 import Home from './pages/public/Home';
@@ -17,10 +18,17 @@ import PlaceOrder from './pages/PlaceOrder';
 import OrderPlaced from './pages/OrderPlaced';
 import JoinUs from './pages/public/JoinUs';
 import AdminDashboard from './pages/admin/Dashboard';
+import ContactUs from './pages/ContactUs';
+import HelpSupport from './pages/HelpSupport';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import RefundPolicy from './pages/RefundPolicy';
+import FssaiCompliance from './pages/FssaiCompliance';
 
 const RootLayout = () => (
     <AuthProvider>
         <CartProvider>
+            <ScrollToTop />
             <SEO
                 title="Home"
                 description="Welcome to Fresh Sutra - Your destination for fresh, healthy juices."
@@ -48,7 +56,13 @@ const router = createBrowserRouter([
             { path: "order-placed", element: <OrderPlaced /> },
             { path: "order-success", element: <OrderPlaced /> },
             { path: "join-us", element: <JoinUs /> },
-            { path: "admin/dashboard", element: <AdminDashboard /> }
+            { path: "admin/dashboard", element: <AdminDashboard /> },
+            { path: "contact-us", element: <ContactUs /> },
+            { path: "help", element: <HelpSupport /> },
+            { path: "privacy-policy", element: <PrivacyPolicy /> },
+            { path: "terms-and-conditions", element: <TermsConditions /> },
+            { path: "refund-policy", element: <RefundPolicy /> },
+            { path: "fssai-compliance", element: <FssaiCompliance /> }
         ]
     }
 ]);
