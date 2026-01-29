@@ -1,29 +1,37 @@
+import React, { Suspense, lazy } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import SEO from './components/common/SEO';
 import { CartProvider } from './context/CartContext';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary'; // Updated to new component
 import { AuthProvider } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 
-// Page Imports
-import Home from './pages/public/Home';
-import Login from './pages/auth/Login';
-import LocationAccess from './pages/public/LocationAccess';
-import NearbyStores from './pages/NearbyStores';
-import StoreDetail from './pages/StoreDetail';
-import OrderSummary from './pages/OrderSummary';
-import PlaceOrder from './pages/PlaceOrder';
-import OrderPlaced from './pages/OrderPlaced';
-import JoinUs from './pages/public/JoinUs';
-import AdminDashboard from './pages/admin/Dashboard';
-import ContactUs from './pages/ContactUs';
-import HelpSupport from './pages/HelpSupport';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsConditions from './pages/TermsConditions';
-import RefundPolicy from './pages/RefundPolicy';
-import FssaiCompliance from './pages/FssaiCompliance';
+// Lazy Load Pages
+const Home = lazy(() => import('./pages/public/Home'));
+const Login = lazy(() => import('./pages/auth/Login'));
+const LocationAccess = lazy(() => import('./pages/public/LocationAccess'));
+const NearbyStores = lazy(() => import('./pages/NearbyStores'));
+const StoreDetail = lazy(() => import('./pages/StoreDetail'));
+const OrderSummary = lazy(() => import('./pages/OrderSummary'));
+const PlaceOrder = lazy(() => import('./pages/PlaceOrder'));
+const OrderPlaced = lazy(() => import('./pages/OrderPlaced'));
+const JoinUs = lazy(() => import('./pages/public/JoinUs'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
+const HelpSupport = lazy(() => import('./pages/HelpSupport'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsConditions = lazy(() => import('./pages/TermsConditions'));
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
+const FssaiCompliance = lazy(() => import('./pages/FssaiCompliance'));
+
+// Loading Fallback Component
+const PageLoader = () => (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-secondary"></div>
+    </div>
+);
 
 const RootLayout = () => (
     <AuthProvider>
@@ -33,9 +41,15 @@ const RootLayout = () => (
                 title="Home"
                 description="Welcome to Fresh Sutra - Your destination for fresh, healthy juices."
             />
-            <MainLayout className="relative">
-                <Outlet />
-            </MainLayout>
+            {/* Global Error Boundary for the main layout */}
+            <ErrorBoundary>
+                <MainLayout className="relative">
+                    {/* Suspense for Lazy Loaded Pages */}
+                    <Suspense fallback={<PageLoader />}>
+                        <Outlet />
+                    </Suspense>
+                </MainLayout>
+            </ErrorBoundary>
         </CartProvider>
     </AuthProvider>
 );
@@ -44,7 +58,7 @@ const router = createBrowserRouter([
     {
         path: "/",
         element: <RootLayout />,
-        errorElement: <ErrorBoundary />,
+        errorElement: <ErrorBoundary />, // Catch router-level errors
         children: [
             { index: true, element: <Home /> },
             { path: "login", element: <Login /> },

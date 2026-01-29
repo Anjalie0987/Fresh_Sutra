@@ -423,7 +423,7 @@ const NearbyStores = () => {
                 {/* LEFT PANEL: LIST */}
                 <div
                     className={classNames(
-                        "w-full md:w-[40%] bg-white h-full overflow-y-auto custom-scrollbar transition-transform duration-300 absolute md:relative z-10",
+                        "w-full md:w-[40%] bg-white h-full overflow-y-auto custom-scrollbar absolute md:relative z-10 transition-transform duration-300",
                         activeView === 'list' ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                     )}
                 >
@@ -469,17 +469,19 @@ const NearbyStores = () => {
                             </div>
                         )}
 
-                        {/* CONTENT STATES - Only show list if NOT in manual mode */}
+                        {/* CONTENT STATES */}
                         {!isManualMode && (
                             <div className="space-y-4">
-                                {isLoading ? (
+                                {isLoading && (
                                     <>
                                         <StoreCardSkeleton />
                                         <StoreCardSkeleton />
                                         <StoreCardSkeleton />
                                         <StoreCardSkeleton />
                                     </>
-                                ) : stores.length > 0 ? (
+                                )}
+
+                                {!isLoading && stores.length > 0 && (
                                     stores.map((store, index) => (
                                         <div key={`store-wrapper-${store.id}`}>
                                             {/* Ad Slot after the 2nd store (index 1) */}
@@ -489,7 +491,6 @@ const NearbyStores = () => {
 
                                             <div
                                                 key={store.id}
-
                                                 ref={el => itemRefs.current[store.id] = el}
                                                 onClick={() => handleStoreClick(store.id)}
                                                 className={classNames(
@@ -519,7 +520,7 @@ const NearbyStores = () => {
                                                 )}
 
                                                 <div className="space-y-3">
-                                                    {/* Route Info Overlay - Only if this card is the routed one */}
+                                                    {/* Route Info Overlay */}
                                                     {routeStoreId === store.id && routeInfo && (
                                                         <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-center justify-between text-sm">
                                                             <span className="text-secondary font-bold">{routeInfo.distance}</span>
@@ -548,46 +549,49 @@ const NearbyStores = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                            ))
-                                            ) : (
-                                            <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
-                                                <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
-                                                <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
-                                                <p className="text-gray-500 text-sm">We couldn't find any juice stores near your location.</p>
-                                            </div>
+                                        </div>
+                                    ))
                                 )}
-                                        </div>
-                                    )}
-                            </div>
-                </div>
 
-                    {/* RIGHT PANEL: MAP */}
-                    <div
-                        className={classNames(
-                            "w-full md:w-[60%] bg-gray-100 h-full absolute md:relative transition-transform duration-300",
-                            activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
-                        )}
-                    >
-                        {!isLoaded || !isLocationResolved ? (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
-                                <div className="text-center">
-                                    <p>Loading map...</p>
-                                    {loadError && (
-                                        <div className="mt-4 flex flex-col items-center text-red-500">
-                                            <FiAlertCircle size={24} className="mb-2" />
-                                            <span className="text-sm font-semibold">Map unavailable</span>
-                                        </div>
-                                    )}
-                                </div>
+                                {!isLoading && stores.length === 0 && (
+                                    <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
+                                        <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
+                                        <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
+                                        <p className="text-gray-500 text-sm">We could not find any juice stores near your location.</p>
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div ref={mapRef} className="w-full h-full" />
                         )}
                     </div>
-
                 </div>
+
+                {/* RIGHT PANEL: MAP */}
+                <div
+                    className={classNames(
+                        "w-full md:w-[60%] bg-gray-100 h-full absolute md:relative transition-transform duration-300",
+                        activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
+                    )}
+                >
+                    {!isLoaded || !isLocationResolved ? (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
+                            <div className="text-center">
+                                <p>Loading map...</p>
+                                {loadError && (
+                                    <div className="mt-4 flex flex-col items-center text-red-500">
+                                        <FiAlertCircle size={24} className="mb-2" />
+                                        <span className="text-sm font-semibold">Map unavailable</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div ref={mapRef} className="w-full h-full" />
+                    )}
+                </div>
+
             </div>
-            );
+        </div>
+    );
 };
 
-            export default NearbyStores;
+export default NearbyStores;

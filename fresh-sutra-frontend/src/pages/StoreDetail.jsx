@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import FloatingCartPreview from '../components/FloatingCartPreview';
+import AdSlot from '../components/AdSlot';
 import { useCart } from '../context/CartContext';
 
 const StoreDetail = () => {
@@ -221,6 +222,9 @@ const StoreDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Ad Slot */}
+            <AdSlot variant="inline" />
 
             {/* 🟢 E. 'Available Juices' Section (Menu Cards) */}
             <div className="container mx-auto mt-10 md:mt-16 mb-20">
