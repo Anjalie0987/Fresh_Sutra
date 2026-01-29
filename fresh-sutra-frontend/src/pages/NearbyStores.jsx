@@ -5,6 +5,7 @@ import { FiList, FiMap, FiCheckCircle, FiSearch, FiAlertCircle } from 'react-ico
 import useGoogleMaps from '../hooks/useGoogleMaps';
 
 import { fetchNearbyStores } from '../services/storeApi';
+import AdSlot from '../components/AdSlot';
 
 
 
@@ -428,7 +429,6 @@ const NearbyStores = () => {
                 >
                     <div className="p-4 md:p-6 lg:p-8 min-h-full">
                         {isManualMode ? (
-                            // MANUAL MODE UI
                             <div className="mb-6">
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                                     Enter Location
@@ -459,7 +459,6 @@ const NearbyStores = () => {
                                 </button>
                             </div>
                         ) : (
-                            // NORMAL MODE UI
                             <div className="mb-6">
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                                     Juice Stores Near You
@@ -474,7 +473,6 @@ const NearbyStores = () => {
                         {!isManualMode && (
                             <div className="space-y-4">
                                 {isLoading ? (
-                                    // LOADING SKELETONS
                                     <>
                                         <StoreCardSkeleton />
                                         <StoreCardSkeleton />
@@ -482,109 +480,114 @@ const NearbyStores = () => {
                                         <StoreCardSkeleton />
                                     </>
                                 ) : stores.length > 0 ? (
-                                    // STORE LIST
-                                    stores.map((store) => (
-                                        <div
-                                            key={store.id}
-                                            ref={el => itemRefs.current[store.id] = el}
-                                            onClick={() => handleStoreClick(store.id)}
-                                            className={classNames(
-                                                "bg-white border rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer group",
-                                                selectedStoreId === store.id
-                                                    ? "border-secondary ring-1 ring-secondary shadow-md bg-orange-50/10"
-                                                    : "border-gray-100 hover:shadow-md hover:border-gray-200"
+                                    stores.map((store, index) => (
+                                        <div key={`store-wrapper-${store.id}`}>
+                                            {/* Ad Slot after the 2nd store (index 1) */}
+                                            {index === 2 && (
+                                                <AdSlot variant="listing" className="mb-4" />
                                             )}
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className={classNames(
-                                                    "text-lg font-bold transition-colors",
-                                                    selectedStoreId === store.id ? "text-secondary" : "text-gray-800 group-hover:text-secondary"
-                                                )}>
-                                                    {store.name}
-                                                </h3>
-                                                <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                                                    {store.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : 'Calculating...'}
-                                                </span>
-                                            </div>
 
-                                            {store.isFSSAI && (
-                                                <div className="flex items-center gap-1.5 text-green-600 mb-4">
-                                                    <FiCheckCircle size={14} />
-                                                    <span className="text-xs font-semibold uppercase tracking-wide">FSSAI Verified</span>
+                                            <div
+                                                key={store.id}
+
+                                                ref={el => itemRefs.current[store.id] = el}
+                                                onClick={() => handleStoreClick(store.id)}
+                                                className={classNames(
+                                                    "bg-white border rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer group",
+                                                    selectedStoreId === store.id
+                                                        ? "border-secondary ring-1 ring-secondary shadow-md bg-orange-50/10"
+                                                        : "border-gray-100 hover:shadow-md hover:border-gray-200"
+                                                )}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className={classNames(
+                                                        "text-lg font-bold transition-colors",
+                                                        selectedStoreId === store.id ? "text-secondary" : "text-gray-800 group-hover:text-secondary"
+                                                    )}>
+                                                        {store.name}
+                                                    </h3>
+                                                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                                                        {store.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : 'Calculating...'}
+                                                    </span>
                                                 </div>
-                                            )}
 
-                                            <div className="space-y-3">
-                                                {/* Route Info Overlay - Only if this card is the routed one */}
-                                                {routeStoreId === store.id && routeInfo && (
-                                                    <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-center justify-between text-sm">
-                                                        <span className="text-secondary font-bold">{routeInfo.distance}</span>
-                                                        <span className="text-gray-500">•</span>
-                                                        <span className="text-gray-700 font-medium">{routeInfo.duration} to get there</span>
+                                                {store.isFSSAI && (
+                                                    <div className="flex items-center gap-1.5 text-green-600 mb-4">
+                                                        <FiCheckCircle size={14} />
+                                                        <span className="text-xs font-semibold uppercase tracking-wide">FSSAI Verified</span>
                                                     </div>
                                                 )}
 
-                                                <button
-                                                    onClick={(e) => handleViewStore(e, store)}
-                                                    className={classNames(
-                                                        "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
-                                                        selectedStoreId === store.id
-                                                            ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
-                                                            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                                <div className="space-y-3">
+                                                    {/* Route Info Overlay - Only if this card is the routed one */}
+                                                    {routeStoreId === store.id && routeInfo && (
+                                                        <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-center justify-between text-sm">
+                                                            <span className="text-secondary font-bold">{routeInfo.distance}</span>
+                                                            <span className="text-gray-500">•</span>
+                                                            <span className="text-gray-700 font-medium">{routeInfo.duration} to get there</span>
+                                                        </div>
                                                     )}
-                                                >
-                                                    {routeStoreId === store.id ? "View Store" : "View Store"}
-                                                </button>
 
-                                                <button
-                                                    onClick={(e) => handleSeeMenu(e, store)}
-                                                    className="w-full py-2 rounded-lg text-sm font-semibold transition-colors bg-secondary text-white hover:bg-yellow-600 shadow-sm mt-2"
-                                                >
-                                                    See Menu
-                                                </button>
+                                                    <button
+                                                        onClick={(e) => handleViewStore(e, store)}
+                                                        className={classNames(
+                                                            "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
+                                                            selectedStoreId === store.id
+                                                                ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
+                                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                                        )}
+                                                    >
+                                                        {routeStoreId === store.id ? "View Store" : "View Store"}
+                                                    </button>
+
+                                                    <button
+                                                        onClick={(e) => handleSeeMenu(e, store)}
+                                                        className="w-full py-2 rounded-lg text-sm font-semibold transition-colors bg-secondary text-white hover:bg-yellow-600 shadow-sm mt-2"
+                                                    >
+                                                        See Menu
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    // EMPTY STATE
-                                    <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
-                                        <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
-                                        <p className="text-gray-500 text-sm">We couldn't find any juice stores near your location.</p>
-                                    </div>
+                                            ))
+                                            ) : (
+                                            <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
+                                                <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
+                                                <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
+                                                <p className="text-gray-500 text-sm">We couldn't find any juice stores near your location.</p>
+                                            </div>
                                 )}
+                                        </div>
+                                    )}
                             </div>
+                </div>
+
+                    {/* RIGHT PANEL: MAP */}
+                    <div
+                        className={classNames(
+                            "w-full md:w-[60%] bg-gray-100 h-full absolute md:relative transition-transform duration-300",
+                            activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
+                        )}
+                    >
+                        {!isLoaded || !isLocationResolved ? (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
+                                <div className="text-center">
+                                    <p>Loading map...</p>
+                                    {loadError && (
+                                        <div className="mt-4 flex flex-col items-center text-red-500">
+                                            <FiAlertCircle size={24} className="mb-2" />
+                                            <span className="text-sm font-semibold">Map unavailable</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div ref={mapRef} className="w-full h-full" />
                         )}
                     </div>
-                </div>
 
-                {/* RIGHT PANEL: MAP */}
-                <div
-                    className={classNames(
-                        "w-full md:w-[60%] bg-gray-100 h-full absolute md:relative transition-transform duration-300",
-                        activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
-                    )}
-                >
-                    {!isLoaded || !isLocationResolved ? ( // Updated Loading Condition
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
-                            <div className="text-center">
-                                <p>Loading map...</p>
-                                {loadError && (
-                                    <div className="mt-4 flex flex-col items-center text-red-500">
-                                        <FiAlertCircle size={24} className="mb-2" />
-                                        <span className="text-sm font-semibold">Map unavailable</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div ref={mapRef} className="w-full h-full" />
-                    )}
                 </div>
-
             </div>
-        </div>
-    );
+            );
 };
 
-export default NearbyStores;
+            export default NearbyStores;
