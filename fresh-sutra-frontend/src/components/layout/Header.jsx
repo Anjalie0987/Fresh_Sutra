@@ -49,7 +49,7 @@ const Header = () => {
                 }
             )}
         >
-            <div className="container mx-auto px-4 md:px-6 h-auto md:h-20 py-3 md:py-0 flex items-center justify-between">
+            <div className="container mx-auto px-4 md:px-6 h-auto md:h-20 py-3 md:py-0 flex items-center justify-between relative z-50">
 
                 {/* LEFT SIDE: Logo + Nav Items */}
                 <div className="flex items-center gap-8 md:gap-12">
@@ -154,11 +154,18 @@ const Header = () => {
                         aria-label="Toggle Menu"
                         aria-expanded={isMobileMenuOpen}
                     >
-                        <div className="w-6 h-5 relative flex flex-col justify-between">
-                            <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "rotate-45 translate-y-2" : "")} />
-                            <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "opacity-0" : "")} />
-                            <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "-rotate-45 -translate-y-2.5" : "")} />
-                        </div>
+                        {isMobileMenuOpen ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-900">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                        ) : (
+                            <div className="w-6 h-5 relative flex flex-col justify-between">
+                                <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "rotate-45 translate-y-2" : "")} />
+                                <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "opacity-0" : "")} />
+                                <span className={classNames("w-full h-0.5 bg-current transition-all duration-300", isMobileMenuOpen ? "-rotate-45 -translate-y-2.5" : "")} />
+                            </div>
+                        )}
                     </button>
                 </div>
             </div>

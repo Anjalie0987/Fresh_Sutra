@@ -1,8 +1,11 @@
 /**
  * Service to interact with Store APIs
  */
+import { API_BASE_URL as BASE_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api/stores';
+const API_BASE_URL = `${BASE_URL}/api/stores`;
+
+
 
 /**
  * Fetch nearby stores based on coordinates and radius

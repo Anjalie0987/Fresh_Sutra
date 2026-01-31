@@ -5,22 +5,35 @@ import storeRoutes from "./routes/store.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import protectedRoutes from "./routes/protected.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
+import reportsRoutes from "./routes/reports.routes.js";
 
 const app = express();
 
-// Middlewares
-app.use(cors({
-    origin: "http://localhost:5173"
-}));
-app.use(express.json());
+/* =========================
+   🔥 FIX FOR MOBILE CORS
+   ========================= */
 
-// Routes
+// Explicit CORS + Preflight handling
+app.use(cors({
+    origin: true,
+    credentials: true,
+}));
+
+// Body parsers (MUST be before routes)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* =========================
+   Routes
+   ========================= */
+
 app.use("/api/stores", storeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/admin/reports", reportsRoutes);
 
-// Health check route
+// Health check
 app.get("/health", (req, res) => {
     res.status(200).json({
         status: "OK",

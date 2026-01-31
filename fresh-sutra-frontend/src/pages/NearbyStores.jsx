@@ -53,6 +53,7 @@ const NearbyStores = () => {
     const mapRef = useRef(null); // Ref for DIV
     const mapInstanceRef = useRef(null); // Ref for Map Instance
     const directionsRendererRef = useRef(null); // Ref for Renderer (Singleton)
+    const directionsServiceRef = useRef(null); // Ref for Service (Singleton)
     const searchInputRef = useRef(null); // Ref for Input
     const searchMarkerRef = useRef(null); // Ref for Draggable Marker
     const markersRef = useRef({});
@@ -115,8 +116,9 @@ const NearbyStores = () => {
 
     // Simulate API Fetch - Trigger ONLY when userLocation is set
     useEffect(() => {
+        if (!userLocation?.lat || !userLocation?.lng) return; // Wait for location
+
         console.log("USER LOCATION UPDATED:", userLocation);
-        if (!userLocation) return; // Wait for location
 
         const loadStores = async () => {
             setIsLoading(true);
@@ -152,14 +154,16 @@ const NearbyStores = () => {
                 clickableIcons: false,
             });
 
+            // Initialize Directions Service
+            directionsServiceRef.current = new window.google.maps.DirectionsService();
+
             // Initialize DirectionsRenderer ONCE
             directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
                 map: mapInstanceRef.current,
-                suppressMarkers: true,
+                suppressMarkers: true, // IMPORTANT: keep our markers
                 polylineOptions: {
-                    strokeColor: "#4285F4",
+                    strokeColor: "#1A73E8",
                     strokeWeight: 5,
-                    strokeOpacity: 0.8,
                 },
             });
         }
@@ -237,12 +241,15 @@ const NearbyStores = () => {
                                 position: { lat: store.latitude, lng: store.longitude },
                                 map: mapInstanceRef.current,
                                 title: store.name,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                },
                                 clickable: true,
                             });
 
                             // Marker Click Listener (Step 4 - Map -> List)
                             marker.addListener("click", () => {
-                                setSelectedStoreId(store.id);
+                                handleStoreSelect(store);
                             });
 
                             markersRef.current[store.id] = marker;
@@ -284,7 +291,6 @@ const NearbyStores = () => {
         // This will trigger fetchStores via useEffect([userLocation])
     };
 
-    // Handle Selection Sync (Step 4)
     // Handle Selection Sync (Step 4 & Red Marker Logic)
     useEffect(() => {
         // 1. Cleanup Red Marker (Always happen on change)
@@ -299,25 +305,6 @@ const NearbyStores = () => {
         // Find store data
         const store = stores.find(s => s.id === selectedStoreId);
         if (!store) return;
-
-        if (mapInstanceRef.current) {
-            // Pan if not routing
-            if (!routeStoreId) {
-                mapInstanceRef.current.panTo({ lat: store.latitude, lng: store.longitude });
-                mapInstanceRef.current.setZoom(14);
-            }
-
-            // Create Red Marker for Selection/Route
-            storeMarkerRef.current = new window.google.maps.Marker({
-                position: { lat: store.latitude, lng: store.longitude },
-                map: mapInstanceRef.current,
-                title: store.name,
-                icon: {
-                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                },
-                animation: window.google.maps.Animation.DROP
-            });
-        }
 
         // 2. Highlight Marker (List -> Map) - Bounces proper blue marker if exists
         if (markersRef.current) {
@@ -339,28 +326,43 @@ const NearbyStores = () => {
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [selectedStoreId, stores, isManualMode, routeStoreId]);
+    }, [selectedStoreId, stores, isManualMode]);
 
     // Function to Calculate Route
-    const calculateRoute = (store) => {
-        if (!userLocation || !directionsRendererRef.current) return;
+    const drawRouteToStore = (store) => {
+        if (!userLocation || !store || !directionsServiceRef.current || !directionsRendererRef.current) return;
+
+        // Clear previous route
+        directionsRendererRef.current.setDirections({ routes: [] });
 
         // Ensure renderer is attached to map
         if (directionsRendererRef.current.getMap() !== mapInstanceRef.current) {
             directionsRendererRef.current.setMap(mapInstanceRef.current);
         }
 
-        const directionsService = new window.google.maps.DirectionsService();
-
-        directionsService.route(
+        directionsServiceRef.current.route(
             {
-                origin: userLocation,
-                destination: { lat: store.latitude, lng: store.longitude },
+                origin: { lat: Number(userLocation.lat), lng: Number(userLocation.lng) },
+                destination: { lat: Number(store.latitude), lng: Number(store.longitude) }, // Using store.latitude/longitude as per existing data structure
                 travelMode: window.google.maps.TravelMode.DRIVING,
             },
             (result, status) => {
                 if (status === window.google.maps.DirectionsStatus.OK) {
                     directionsRendererRef.current.setDirections(result);
+
+                    // Explicitly re-render the store marker to ensure visibility
+                    if (storeMarkerRef.current) {
+                        storeMarkerRef.current.setMap(null);
+                    }
+                    storeMarkerRef.current = new window.google.maps.Marker({
+                        position: { lat: store.latitude, lng: store.longitude },
+                        map: mapInstanceRef.current,
+                        title: store.name,
+                        icon: {
+                            url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                        },
+                        zIndex: 999 // Ensure it sits on top of the route line
+                    });
 
                     const leg = result.routes[0].legs[0];
                     setRouteInfo({
@@ -368,22 +370,28 @@ const NearbyStores = () => {
                         duration: leg.duration.text
                     });
                 } else {
-                    console.error("Directions request failed:", status);
+                    console.error("Directions failed:", status);
                     setRouteInfo(null);
                 }
             }
         );
     };
 
-    const handleViewStore = (e, store) => {
-        e.stopPropagation();
+    const handleStoreSelect = (store) => {
         setSelectedStoreId(store.id);
-        setRouteStoreId(store.id);
-        calculateRoute(store);
+        drawRouteToStore(store);
+    };
+
+    const handleViewStore = (store) => {
+        setSelectedStoreId(store.id);
+        drawRouteToStore(store);
     };
 
     const handleStoreClick = (storeId) => {
-        setSelectedStoreId(storeId);
+        const store = stores.find(s => s.id === storeId);
+        if (store) {
+            handleStoreSelect(store);
+        }
     };
 
     return (
@@ -530,7 +538,7 @@ const NearbyStores = () => {
                                                     )}
 
                                                     <button
-                                                        onClick={(e) => handleViewStore(e, store)}
+                                                        onClick={() => handleViewStore(store)}
                                                         className={classNames(
                                                             "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
                                                             selectedStoreId === store.id

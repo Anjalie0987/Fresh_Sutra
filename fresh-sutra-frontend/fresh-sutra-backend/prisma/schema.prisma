@@ -22,6 +22,25 @@ model User {
   password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
+
+  // New fields for Google Ads Report
+  firstName String?
+  lastName  String?
+  phone     String?
+  country   String?   @default("IN")
+  zip       String?
+  city      String?
+
+  orders    Order[]
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  storeId   String?
+  createdAt DateTime @default(now())
 }
 
 enum Role {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const ContactUs = () => {
     // 1️⃣ Use a single source of truth for form state
@@ -24,11 +24,15 @@ const ContactUs = () => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(""); // 5️⃣ Clear error after successful submit attempt start
+        e.preventDefault(); // 🚨 REQUIRED
 
-        // 4️⃣ Fix validation logic (THIS IS CRITICAL)
+        // 🔧 STEP 4: Add Mobile Debug Log (TEMP)
+        console.log("Submitting contact form:", formData);
+
+        setLoading(true);
+        setError("");
+
+        // Basic validation
         if (
             !formData.name.trim() ||
             !formData.email.trim() ||
@@ -40,21 +44,20 @@ const ContactUs = () => {
         }
 
         try {
-            // 6️⃣ Send EXACT payload to backend
-            await axios.post("http://localhost:5000/api/contact", {
-                name: formData.name,
-                email: formData.email,
-                subject: formData.subject,
-                message: formData.message
+            const res = await fetch(`${API_BASE_URL}/api/contact`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
             });
 
+            if (!res.ok) throw new Error("Request failed");
+
             setSubmitted(true);
-            // Form resets after success (part of 5️⃣/REQ)
             setFormData({ name: '', email: '', subject: '', message: '' });
             setTimeout(() => setSubmitted(false), 5000);
-
-        } catch (error) {
-            setError(error.response?.data?.message || 'Failed to send message.');
+        } catch (err) {
+            console.error(err);
+            setError("Failed to send message. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -79,7 +82,7 @@ const ContactUs = () => {
                         <div>
                             <h3 className="text-lg font-medium text-gray-900">Support Email</h3>
                             <p className="mt-2 text-base text-gray-500 hover:text-orange-500 transition-colors">
-                                <a href="mailto:freshsutra88@gmail.com">freshsutra88@gmail.com</a>
+                                <a href="mailto:freshsutra88@gmail.com">freshsutra888@gmail.com</a>
                             </p>
                         </div>
                         <div>
@@ -116,7 +119,6 @@ const ContactUs = () => {
                                     type="text"
                                     name="name"
                                     id="name"
-
                                     value={formData.name}
                                     onChange={handleChange}
                                     className="mt-1 block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-orange-500 focus:border-orange-500 transition-colors"
@@ -132,7 +134,6 @@ const ContactUs = () => {
                                     type="email"
                                     name="email"
                                     id="email"
-
                                     value={formData.email}
                                     onChange={handleChange}
                                     className="mt-1 block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-orange-500 focus:border-orange-500 transition-colors"
@@ -163,7 +164,6 @@ const ContactUs = () => {
                                     name="message"
                                     id="message"
                                     rows="4"
-
                                     value={formData.message}
                                     onChange={handleChange}
                                     className="mt-1 block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-orange-500 focus:border-orange-500 transition-colors"

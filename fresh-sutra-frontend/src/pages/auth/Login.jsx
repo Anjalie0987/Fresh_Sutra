@@ -55,8 +55,27 @@ const Login = () => {
         }
     };
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            navigate(-1);
+        } else {
+            navigate('/');
+        }
+    };
+
     return (
-        <div className="min-h-screen w-full bg-neutral-50 flex items-center justify-center p-4">
+        <div className="min-h-screen w-full bg-neutral-50 flex items-center justify-center p-4 relative">
+            {/* Mobile Back Button */}
+            <button
+                onClick={handleBack}
+                className="absolute top-4 left-4 p-2 text-neutral-600 hover:text-neutral-900 md:hidden z-20 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Go back"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
 
             {/* Card Container */}
             <div className="bg-white w-full max-w-[440px] rounded-2xl shadow-xl flex flex-col items-center p-8 md:p-10 transition-all duration-300">
