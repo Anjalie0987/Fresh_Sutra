@@ -158,8 +158,33 @@ const AdminDashboard = () => {
                     </select>
 
                     <button
-                        className="px-6 py-2 bg-orange-600 text-white rounded-lg font-medium shadow-md hover:bg-orange-700 transition-colors transform active:scale-95"
-                        onClick={() => alert(`Report for ${activeStore} generated!`)}
+                        className="px-6 py-2 bg-orange-600 text-white rounded-lg font-medium shadow-md hover:bg-orange-700 transition-colors transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={async () => {
+                            try {
+                                const token = localStorage.getItem('token');
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/reports/customer-match`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                });
+
+                                if (!response.ok) throw new Error('Download failed');
+
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `FreshSutra_CustomerMatch_${new Date().toISOString().split('T')[0]}.xlsx`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                            } catch (error) {
+                                console.error("Report download failed:", error);
+                                // Optional: User-friendly error toast could go here
+                            }
+                        }}
                     >
                         Download Report
                     </button>
