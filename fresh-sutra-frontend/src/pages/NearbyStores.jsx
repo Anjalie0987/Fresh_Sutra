@@ -122,14 +122,14 @@ const NearbyStores = () => {
         if (!isLoaded) return;
 
         // -- Map Setup --
-        // Initialize if we have a userLocation OR if we are in manual mode (fallback to default)
-        if (mapRef.current && !mapInstanceRef.current && (userLocation || isManualMode)) {
-            // Default to Indiranagar, Bangalore if no location found
-            const DEFAULT_LOCATION = { lat: 12.9716, lng: 77.5946 };
-            const initialCenter = userLocation || DEFAULT_LOCATION;
+        // Unconditionally Initialize Map (Mobile Fix)
+        // If we don't have a userLocation yet, show default (Delhi) so map is visible
+        if (mapRef.current && !mapInstanceRef.current) {
+            const DEFAULT_LOCATION = { lat: 28.6139, lng: 77.2090 }; // Delhi
+            const mapCenter = userLocation ?? DEFAULT_LOCATION;
 
             const map = new window.google.maps.Map(mapRef.current, {
-                center: initialCenter,
+                center: mapCenter,
                 zoom: 14,
                 mapTypeControl: false,
                 streetViewControl: false,
@@ -160,12 +160,13 @@ const NearbyStores = () => {
                     icon: {
                         path: window.google.maps.SymbolPath.CIRCLE,
                         scale: 8,
-                        fillColor: "#4285F4",
+                        fillColor: "#1A73E8", // Blue dot
                         fillOpacity: 1,
                         strokeColor: "white",
                         strokeWeight: 2,
                     },
-                    title: "Your Location"
+                    title: "Your Location",
+                    zIndex: 999
                 });
             }
         }
@@ -181,15 +182,17 @@ const NearbyStores = () => {
                     icon: {
                         path: window.google.maps.SymbolPath.CIRCLE,
                         scale: 8,
-                        fillColor: "#4285F4",
+                        fillColor: "#1A73E8", // Blue dot
                         fillOpacity: 1,
                         strokeColor: "white",
                         strokeWeight: 2,
                     },
-                    title: "Your Location"
+                    title: "Your Location",
+                    zIndex: 999 // Ensure it's on top
                 });
             } else {
                 markersRef.current.userMarker.setPosition(userLocation);
+                markersRef.current.userMarker.setMap(mapInstanceRef.current); // Ensure it's on the map
             }
         }
 
@@ -473,13 +476,14 @@ const NearbyStores = () => {
 
             {/* View Menu Modal (Redesigned) */}
             {isMenuOpen && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity" onClick={toggleMenu}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity" onClick={toggleMenu}>
                     <div
-                        className="bg-white rounded-[20px] w-full max-w-[460px] max-h-[85vh] md:max-h-[80vh] flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-200"
+                        className="bg-white w-full md:w-[420px] max-h-[80vh] flex flex-col rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden"
                         onClick={e => e.stopPropagation()}
+                        style={{ maxWidth: '420px', width: '90%' }} // Explicit width as requested
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white rounded-t-[20px] sticky top-0 z-20">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white sticky top-0 z-20 shrink-0">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                                     fresh menu
@@ -490,9 +494,9 @@ const NearbyStores = () => {
                             </div>
                             <button
                                 onClick={toggleMenu}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                             >
-                                <FiX size={18} />
+                                <FiX size={20} />
                             </button>
                         </div>
 

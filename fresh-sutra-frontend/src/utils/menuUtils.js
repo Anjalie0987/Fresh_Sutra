@@ -9,34 +9,16 @@ import { COMMON_MENU } from '../data/commonMenu';
 export const getShuffledMenuForVendor = (vendorId) => {
     if (!vendorId) return COMMON_MENU;
 
-    const storageKey = `vendor_menu_order_${vendorId}`;
-    const storedOrder = sessionStorage.getItem(storageKey);
+    // Requirement: Shuffle menu every time a menu is opened
+    // We do NOT use sessionStorage anymore as per new requirement
 
-    // 1. Return cached order if exists
-    if (storedOrder) {
-        try {
-            const orderIds = JSON.parse(storedOrder);
-            // Map the original menu to the stored order of IDs
-            // This is safer than storing the whole object (single source of truth for prices/items)
-            const orderedMenu = orderIds
-                .map(id => COMMON_MENU.find(cat => cat.categoryId === id))
-                .filter(Boolean); // Filter out any undefineds if schema changed
+    // 1. Get shuffled IDs
+    // Create a new copy of IDs to shuffle
+    const allCategoryIds = COMMON_MENU.map(c => c.categoryId);
+    const shuffledIds = shuffleArray([...allCategoryIds]);
 
-            if (orderedMenu.length === COMMON_MENU.length) {
-                return orderedMenu;
-            }
-        } catch (e) {
-            console.error("Failed to parse stored menu order", e);
-        }
-    }
-
-    // 2. Shuffle if no cache or invalid
-    const shuffledIds = shuffleArray(COMMON_MENU.map(c => c.categoryId));
-
-    // Store IDs not data
-    sessionStorage.setItem(storageKey, JSON.stringify(shuffledIds));
-
-    // Return mapped menu
+    // 2. Map back to full objects
+    // This ensures we always get a fresh random order
     return shuffledIds
         .map(id => COMMON_MENU.find(cat => cat.categoryId === id))
         .filter(Boolean);

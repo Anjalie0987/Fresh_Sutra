@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import classNames from 'classnames';
-import { FiShoppingCart, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiUser, FiLogOut } from 'react-icons/fi';
 import Logo from '../../assets/icons/FreshSutra_Logo.jpg';
-import { useCart } from '../../context/CartContext';
+
 import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { totalItems, toggleDrawer } = useCart();
+
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -116,36 +116,12 @@ const Header = () => {
                         </Link>
                     )}
 
-                    {/* Cart Icon */}
-                    <button
-                        className="relative text-neutral-900 hover:text-secondary transition-colors p-1"
-                        aria-label="Cart"
-                        onClick={() => toggleDrawer(true)}
-                    >
-                        <FiShoppingCart size={22} />
-                        {totalItems > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-secondary-red text-white text-xs w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
-                                {totalItems}
-                            </span>
-                        )}
-                    </button>
+
                 </div>
 
                 {/* MOBILE ACTIONS */}
                 <div className="flex desktop:hidden items-center gap-4">
-                    {/* Cart on Mobile */}
-                    <button
-                        className="relative text-neutral-900 hover:text-secondary transition-colors p-1"
-                        aria-label="Cart"
-                        onClick={() => toggleDrawer(true)}
-                    >
-                        <FiShoppingCart size={22} />
-                        {totalItems > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-secondary-red text-white text-xs w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
-                                {totalItems}
-                            </span>
-                        )}
-                    </button>
+
 
                     {/* Hamburger */}
                     <button

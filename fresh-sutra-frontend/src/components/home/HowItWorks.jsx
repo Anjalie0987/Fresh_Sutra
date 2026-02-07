@@ -42,7 +42,7 @@ const HowItWorks = () => {
                         image={StepLocation}
                         title="Share Your Location"
                         subtitle=""
-                        description="Allow location access so we can show hygienic, FSSAI-verified juice stores around your area."
+                        description="Allow location access so we can show hygienic juice stores around your area."
                     />
 
                     {/* Step 2 */}

@@ -48,7 +48,7 @@ const Footer = () => {
                                 Drink Fresh at Its Best
                             </h3>
                             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0">
-                                Fresh Sutra helps you discover hygienic, FSSAI-verified juice stores near you and get fresh juice delivered.
+                                Fresh Sutra helps you discover hygienic juice stores near you and get fresh juice delivered.
                             </p>
                         </div>
                     </div>
@@ -72,7 +72,7 @@ const Footer = () => {
                             <FooterLink to="/privacy-policy" text="Privacy Policy" />
                             <FooterLink to="/terms-and-conditions" text="Terms & Conditions" />
                             <FooterLink to="/refund-policy" text="Refund Policy" />
-                            <FooterLink to="/fssai-compliance" text="FSSAI Compliance" />
+
                         </div>
                     </div>
 
@@ -85,10 +85,10 @@ const Footer = () => {
                             <SocialIcon Icon={FaLinkedinIn} href="https://linkedin.com" />
                         </div>
                         <a
-                            href="mailto:freshsutra7@gmail.com"
+                            href="mailto:accordantconsultants@gmail.com"
                             className="text-gray-400 text-sm hover:text-[#FF8C00] transition-colors"
                         >
-                            freshsutra7@gmail.com
+                            accordantconsultants@gmail.com
                         </a>
                     </div>
                 </div>
@@ -97,6 +97,17 @@ const Footer = () => {
                 <div className="pt-8 border-t border-gray-700/50 flex flex-col md:flex-row justify-center md:justify-start items-center">
                     <p className="text-gray-500 text-xs text-center md:text-left w-full">
                         © {currentYear} Fresh Sutra. All rights reserved.
+                        <span className="md:ml-2 mt-2 md:mt-0 block md:inline">
+                            Powered by{' '}
+                            <a
+                                href="https://www.aconsultants.in/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-[#FF8C00] transition-colors"
+                            >
+                                Accordant Consultants
+                            </a>
+                        </span>
                     </p>
                 </div>
             </div>

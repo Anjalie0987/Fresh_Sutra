@@ -81,7 +81,7 @@ const Hero = () => {
 
                     {/* Description */}
                     <p className="text-neutral-500 text-lg md:text-xl leading-relaxed max-w-lg mx-auto font-medium mb-10">
-                        Discover fresh, hygienic, and FSSAI-verified juice stores around you and order in seconds.
+                        Discover Fresh and Hygienic juice stores around you and order in seconds.
                     </p>
 
                     {/* CTAs */}
@@ -91,7 +91,7 @@ const Hero = () => {
                             to="/location"
                             className="inline-flex items-center justify-center px-10 py-4 bg-secondary text-white rounded-full text-lg font-bold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-yellow-600 transition-all active:scale-95 w-full sm:w-auto transform hover:-translate-y-1"
                         >
-                            <span className="mr-2">Order Now</span>
+                            <span className="mr-2">Find Store..</span>
                             <FiArrowRight size={20} className="text-white" />
                         </Link>
                     </div>

@@ -1,7 +1,56 @@
 import React from 'react';
 import { FiCheckCircle, FiFileText, FiSmartphone, FiShoppingBag, FiTrendingUp } from 'react-icons/fi';
+import { API_BASE_URL } from '../../config/api';
 
 const JoinUs = () => {
+    const [formData, setFormData] = React.useState({
+        email: "",
+        message: ""
+    });
+    const [loading, setLoading] = React.useState(false);
+    const [submitted, setSubmitted] = React.useState(false);
+    const [error, setError] = React.useState("");
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        if (!formData.email.trim() || !formData.message.trim()) {
+            setError("Email and message are required.");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/contact`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: "Partner Inquiry",
+                    email: formData.email,
+                    subject: "Join Us Query",
+                    message: formData.message + "\n\n[Source: Join Us section]"
+                }),
+            });
+
+            if (!res.ok) throw new Error("Request failed");
+
+            setSubmitted(true);
+            setFormData({ email: "", message: "" });
+            setTimeout(() => setSubmitted(false), 5000);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to send message. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <div className="min-h-screen bg-white">
             {/* 1️⃣ HERO SECTION */}
@@ -47,29 +96,59 @@ const JoinUs = () => {
                             <div className="bg-white rounded-3xl shadow-2xl p-8 relative overflow-hidden transform transition-all hover:scale-[1.01]">
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-yellow-500"></div>
 
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Get Started</h2>
-                                <p className="text-gray-500 text-sm mb-6">Enter your mobile number to begin store onboarding.</p>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Have a Question?</h2>
+                                <p className="text-gray-500 text-sm mb-6">Write to us and our team will get back to you shortly.</p>
 
-                                <div className="flex flex-col gap-4">
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <span className="text-gray-500 font-medium">+91</span>
+                                {submitted ? (
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center animate-fadeIn my-8">
+                                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <FiCheckCircle className="text-green-600 text-xl" />
                                         </div>
-                                        <input
-                                            type="tel"
-                                            placeholder="Enter mobile number"
-                                            className="w-full pl-14 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-gray-900 placeholder-gray-400 font-medium"
-                                        />
+                                        <p className="text-green-800 font-medium">
+                                            Message sent successfully! <br /> We'll contact you soon.
+                                        </p>
                                     </div>
+                                ) : (
+                                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                                        {error && (
+                                            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg text-center">
+                                                {error}
+                                            </div>
+                                        )}
 
-                                    <button className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all active:scale-[0.98]">
-                                        Continue
-                                    </button>
-                                </div>
+                                        <div>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                placeholder="Enter your email address"
+                                                required
+                                                className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-gray-900 placeholder-gray-400 font-medium"
+                                            />
+                                        </div>
 
-                                <p className="text-[10px] text-gray-400 text-center mt-6">
-                                    By continuing, you agree to Fresh Sutra’s Terms & Conditions
-                                </p>
+                                        <div>
+                                            <textarea
+                                                name="message"
+                                                value={formData.message}
+                                                onChange={handleChange}
+                                                placeholder="Write your message here..."
+                                                required
+                                                rows="3"
+                                                className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-gray-900 placeholder-gray-400 font-medium resize-none"
+                                            ></textarea>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {loading ? 'Sending...' : 'Send Message'}
+                                        </button>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     </div>

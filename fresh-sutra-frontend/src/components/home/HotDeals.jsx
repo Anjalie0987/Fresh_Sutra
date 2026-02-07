@@ -84,8 +84,8 @@ const HotDeals = () => {
                         badge="New Offer"
                         badgeColor="bg-secondary"
                         rating={4.8}
-                        originalPrice={120}
-                        price={89}
+                        originalPrice={70}
+                        price={50}
                         discount="25% OFF"
                     />
 
@@ -97,8 +97,8 @@ const HotDeals = () => {
                         badge="Trending"
                         badgeColor="bg-green-500"
                         rating={4.5}
-                        originalPrice={150}
-                        price={110}
+                        originalPrice={80}
+                        price={60}
                         discount="26% OFF"
                     />
 
@@ -110,8 +110,8 @@ const HotDeals = () => {
                         badge="Nearby"
                         badgeColor="bg-blue-500"
                         rating={4.2}
-                        originalPrice={180}
-                        price={149}
+                        originalPrice={80}
+                        price={60}
                         discount="17% OFF"
                     />
 
@@ -123,8 +123,8 @@ const HotDeals = () => {
                         badge="Limited Time"
                         badgeColor="bg-secondary-red"
                         rating={4.9}
-                        originalPrice={200}
-                        price={169}
+                        originalPrice={100}
+                        price={80}
                         discount="15% OFF"
                     />
                 </div>
