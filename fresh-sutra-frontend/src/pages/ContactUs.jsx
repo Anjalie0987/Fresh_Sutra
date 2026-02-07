@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { API_BASE_URL } from '../config/api';
 
 const ContactUs = () => {
@@ -82,7 +82,7 @@ const ContactUs = () => {
                         <div>
                             <h3 className="text-lg font-medium text-gray-900">Support Email</h3>
                             <p className="mt-2 text-base text-gray-500 hover:text-orange-500 transition-colors">
-                                <a href="mailto:freshsutra88@gmail.com">freshsutra888@gmail.com</a>
+                                <a href="mailto:freshsutra7@gmail.com">freshsutra7@gmail.com</a>
                             </p>
                         </div>
                         <div>

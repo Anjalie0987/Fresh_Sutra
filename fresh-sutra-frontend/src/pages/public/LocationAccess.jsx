@@ -1,14 +1,19 @@
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdLocationOn } from 'react-icons/md';
 
 const LocationAccess = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleEnableLocation = () => {
+        setIsLoading(true);
+        setError(null);
+
         if (!navigator.geolocation) {
-            // Fallback if geolocation is not supported
-            localStorage.setItem('userLocation', JSON.stringify({ lat: 28.6139, lng: 77.2090 }));
-            navigate('/stores-near-you');
+            setError("Geolocation is not supported by your browser.");
+            setIsLoading(false);
             return;
         }
 
@@ -19,14 +24,20 @@ const LocationAccess = () => {
                     lng: position.coords.longitude
                 };
                 localStorage.setItem('userLocation', JSON.stringify(loc));
+                // Redirect immediately to the store finder page
                 navigate('/stores-near-you');
             },
-            (error) => {
-                console.warn("Location access denied/error:", error);
-                // Fallback to coordinates
-                const fallback = { lat: 28.6139, lng: 77.2090 };
-                localStorage.setItem('userLocation', JSON.stringify(fallback));
-                navigate('/stores-near-you');
+            (err) => {
+                console.warn("Location access denied/error:", err);
+                // requirement: Stop "Detecting..." state
+                setIsLoading(false);
+                // requirement: Show friendly error message
+                setError("Unable to detect your location. Please enter location manually.");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
     };
@@ -51,14 +62,24 @@ const LocationAccess = () => {
                 We use your location to show fresh juice stores near you.
             </p>
 
+            {/* Error Message */}
+            {error && (
+                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm max-w-xs border border-red-100">
+                    {error}
+                </div>
+            )}
+
             {/* Buttons */}
             <div className="flex flex-col gap-4 w-full max-w-xs">
                 {/* Primary: Allow Access */}
                 <button
                     onClick={handleEnableLocation}
-                    className="w-full py-4 bg-secondary text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-100 hover:bg-yellow-600 hover:shadow-xl transition-all active:scale-[0.98]"
+                    disabled={isLoading}
+                    className={`w-full py-4 bg-secondary text-white rounded-xl font-bold text-lg shadow-lg shadow-orange-100 transition-all active:scale-[0.98]
+                        ${isLoading ? 'opacity-70 cursor-wait' : 'hover:bg-yellow-600 hover:shadow-xl'}
+                    `}
                 >
-                    Allow Location Access
+                    {isLoading ? "Detecting..." : "Allow Location Access"}
                 </button>
 
                 {/* Secondary: Manual Entry */}

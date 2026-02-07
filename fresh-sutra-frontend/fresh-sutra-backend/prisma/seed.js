@@ -64,7 +64,7 @@ const stores = [
 async function seedUsers() {
     console.log("Checking for Admin user...");
     const oldAdminEmail = "admin@freshsutra.com";
-    const newAdminEmail = "freshsutra88@gmail.com";
+    const newAdminEmail = "accordantconsultants@gmail.com";
     const newPassword = await bcrypt.hash("freshsutra88", 10);
 
     // 1. Check if new admin already exists

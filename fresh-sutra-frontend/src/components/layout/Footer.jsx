@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaInstagram, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
 import Logo from '../../assets/icons/FreshSutra_Logo.jpg';
@@ -84,10 +85,10 @@ const Footer = () => {
                             <SocialIcon Icon={FaLinkedinIn} href="https://linkedin.com" />
                         </div>
                         <a
-                            href="mailto:freshsutra88@gmail.com"
+                            href="mailto:freshsutra7@gmail.com"
                             className="text-gray-400 text-sm hover:text-[#FF8C00] transition-colors"
                         >
-                            freshsutra888@gmail.com
+                            freshsutra7@gmail.com
                         </a>
                     </div>
                 </div>

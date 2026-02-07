@@ -1,603 +1,564 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import classNames from 'classnames';
-import { FiList, FiMap, FiCheckCircle, FiSearch, FiAlertCircle } from 'react-icons/fi';
+import { FiList, FiMap, FiNavigation, FiSearch, FiArrowLeft, FiStar, FiMapPin, FiChevronDown, FiChevronUp, FiX, FiCheck } from 'react-icons/fi';
 import useGoogleMaps from '../hooks/useGoogleMaps';
-
-import { fetchNearbyStores } from '../services/storeApi';
+import { fetchNearbyJuiceStores } from '../services/storeApi';
 import AdSlot from '../components/AdSlot';
-
-
-
-const StoreCardSkeleton = () => (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm animate-pulse">
-        <div className="flex justify-between items-start mb-2">
-            <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-5 bg-gray-100 rounded w-16"></div>
-        </div>
-        <div className="h-4 bg-gray-100 rounded w-24 mb-4"></div>
-        <div className="h-9 bg-gray-200 rounded-lg w-full"></div>
-    </div>
-);
-
-
+import { getShuffledMenuForVendor } from '../utils/menuUtils';
+import { formatPrice } from '../data/commonMenu';
 
 const NearbyStores = () => {
-    const [activeView, setActiveView] = useState('list'); // 'list' or 'map'
-    const { isLoaded, loadError } = useGoogleMaps();
+    // Layout State
+    const [activeView, setActiveView] = useState('both'); // 'list', 'map', 'both' (desktop)
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-    // Data States
+    // Data State
+    const [userLocation, setUserLocation] = useState(null);
+    const [isManualMode, setIsManualMode] = useState(false);
     const [stores, setStores] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedStoreId, setSelectedStoreId] = useState(null);
+    const [error, setError] = useState(null);
 
-    // Step 7: Route State
-    const [routeStoreId, setRouteStoreId] = useState(null);
+    // Interaction State
+    const [selectedStore, setSelectedStore] = useState(null);
     const [routeInfo, setRouteInfo] = useState(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [menuData, setMenuData] = useState([]);
+    const [expandedCategory, setExpandedCategory] = useState(null);
 
-    // Step 5: Location State
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [isManualMode, setIsManualMode] = useState(false); // Initialized in useEffect to avoid hydration mismatches if needed, but here simple state is fine
-    const [searchLocation, setSearchLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default for manual map center
-
-    const handleSeeMenu = (e, store) => {
-        e.stopPropagation();
-        navigate(`/store/${store.id}`, { state: { storeName: store.name } });
+    // Helper: Category Icons
+    const getCategoryIcon = (id) => {
+        const icons = {
+            classic_fruit: '🍊',
+            summer_coolers: '🏖️',
+            seasonal_specials: '🥭',
+            healthy_detox: '🥕',
+            green_fitness: '🌿',
+        };
+        return icons[id] || '🥤';
     };
 
-    const [userLocation, setUserLocation] = useState(null);
-    const [isLocationResolved, setIsLocationResolved] = useState(false);
-
     // Refs
-    const mapRef = useRef(null); // Ref for DIV
-    const mapInstanceRef = useRef(null); // Ref for Map Instance
-    const directionsRendererRef = useRef(null); // Ref for Renderer (Singleton)
-    const directionsServiceRef = useRef(null); // Ref for Service (Singleton)
-    const searchInputRef = useRef(null); // Ref for Input
-    const searchMarkerRef = useRef(null); // Ref for Draggable Marker
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
     const markersRef = useRef({});
-    const storeMarkerRef = useRef(null); // Ref for Red Destination Marker
-    const itemRefs = useRef({});
+    const directionsServiceRef = useRef(null);
+    const directionsRendererRef = useRef(null);
+    const storeListRef = useRef(null);
+    const storeItemRefs = useRef({});
+    const autocompleteInputRef = useRef(null);
+    const autocompleteInstanceRef = useRef(null);
 
-    // Initialize Mode from Navigation State
+    // Hooks
+    const { isLoaded } = useGoogleMaps();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Responsive Handler
     useEffect(() => {
-        if (location.state?.manualLocationMode) {
-            setIsManualMode(true);
-            setIsLocationResolved(true); // Manually resolved as "selecting..."
-        }
-    }, [location.state]);
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (!mobile) setActiveView('both');
+            else if (activeView === 'both') setActiveView('list');
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Init
+        return () => window.removeEventListener('resize', handleResize);
+    }, [activeView]);
 
-    // Step 5 & 6: Fetch User Location (Check LocalStorage First)
+    // 1. Initial Logic: Check Navigation State or Local Storage
     useEffect(() => {
-        // If in manual mode, DO NOT fetch/check location initially. Wait for user confirmation.
-        if (location.state?.manualLocationMode || isManualMode) return;
-
-        // Step 6: Check LocalStorage
-        const savedLoc = localStorage.getItem('userLocation');
-        if (savedLoc) {
-            try {
-                setUserLocation(JSON.parse(savedLoc));
-                setIsLocationResolved(true);
-                return; // precise return to avoid re-fetching
-            } catch (e) {
-                console.error("Error parsing saved location", e);
-                localStorage.removeItem('userLocation');
+        const init = async () => {
+            // Did user click "Enter Location Manually"?
+            if (location.state?.manualLocationMode) {
+                setIsManualMode(true);
+                setIsLoading(false); // Waiting for user input
+                return;
             }
-        }
 
-        // Step 5: Fallback to Browser Logic if no saved location
-        if (!navigator.geolocation) {
-            setUserLocation({ lat: 28.6139, lng: 77.2090 }); // Default
-            setIsLocationResolved(true);
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setUserLocation({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                });
-                setIsLocationResolved(true);
-            },
-            (error) => {
-                console.warn("Location permission denied or error:", error);
-                setUserLocation({ lat: 28.6139, lng: 77.2090 }); // Fallback
-                setIsLocationResolved(true);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
+            // Normal Flow: Check Local Storage
+            const savedLoc = localStorage.getItem('userLocation');
+            if (!savedLoc) {
+                navigate('/location'); // Redirect if no location
+                return;
             }
-        );
-    }, []);
 
-    // Simulate API Fetch - Trigger ONLY when userLocation is set
-    useEffect(() => {
-        if (!userLocation?.lat || !userLocation?.lng) return; // Wait for location
-
-        console.log("USER LOCATION UPDATED:", userLocation);
-
-        const loadStores = async () => {
-            setIsLoading(true);
             try {
-                // Fetch stores from backend with 15km radius
-                const data = await fetchNearbyStores(userLocation.lat, userLocation.lng, 15);
-                setStores(data);
+                const parsedLoc = JSON.parse(savedLoc);
+                await handleLocationUpdate(parsedLoc);
             } catch (err) {
-                console.error("Failed to fetch stores", err);
-                setStores([]); // Ensure empty state on error
-            } finally {
-                setIsLoading(false);
+                console.error("Failed to parse location:", err);
+                navigate('/location');
             }
         };
 
-        loadStores();
-    }, [userLocation]);
+        if (isLoaded) init(); // Only start when Google Maps is ready (helpful for types)
+    }, [navigate, location.state, isLoaded]);
 
-    // Initialize Map (Updated for Manual Mode)
+    // Helper: Update Location & Fetch Stores
+    const handleLocationUpdate = async (loc) => {
+        setUserLocation(loc);
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await fetchNearbyJuiceStores(loc.lat, loc.lng);
+            setStores(data);
+
+            // If in manual mode, once we have data, we can optionally switch view
+            // keeping isManualMode true allows us to show the "Search again" bar easily if we want
+        } catch (err) {
+            console.error("Failed to load stores:", err);
+            setError("Failed to load nearby stores. Please try again.");
+            setStores([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 2. Initialize Map & Autocomplete
     useEffect(() => {
-        // Wait for both SDK loaded AND resolution state
-        if (isLoaded && isLocationResolved && mapRef.current && !mapInstanceRef.current) {
+        if (!isLoaded) return;
 
-            // Determine initial center
-            const center = userLocation || searchLocation;
+        // -- Map Setup --
+        // Initialize if we have a userLocation OR if we are in manual mode (fallback to default)
+        if (mapRef.current && !mapInstanceRef.current && (userLocation || isManualMode)) {
+            // Default to Indiranagar, Bangalore if no location found
+            const DEFAULT_LOCATION = { lat: 12.9716, lng: 77.5946 };
+            const initialCenter = userLocation || DEFAULT_LOCATION;
 
-            mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-                center: center,
-                zoom: 13,
+            const map = new window.google.maps.Map(mapRef.current, {
+                center: initialCenter,
+                zoom: 14,
                 mapTypeControl: false,
                 streetViewControl: false,
                 fullscreenControl: false,
                 clickableIcons: false,
-            });
-
-            // Initialize Directions Service
-            directionsServiceRef.current = new window.google.maps.DirectionsService();
-
-            // Initialize DirectionsRenderer ONCE
-            directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-                map: mapInstanceRef.current,
-                suppressMarkers: true, // IMPORTANT: keep our markers
-                polylineOptions: {
-                    strokeColor: "#1A73E8",
-                    strokeWeight: 5,
-                },
-            });
-        }
-
-        // Update Map Center/Markers when mode or location changes
-        if (mapInstanceRef.current) {
-
-            // 1. Manual Mode: Show Draggable Marker (Search Pin)
-            if (isManualMode) {
-                // Clear store markers
-                Object.values(markersRef.current).forEach(m => m.setMap(null));
-                markersRef.current = {};
-
-                // Clear Route
-                if (directionsRendererRef.current) {
-                    directionsRendererRef.current.setDirections({ routes: [] });
-                }
-
-                // Ensure center is updated
-                mapInstanceRef.current.panTo(searchLocation);
-
-                // Create or Update Search Marker
-                if (!searchMarkerRef.current) {
-                    searchMarkerRef.current = new window.google.maps.Marker({
-                        position: searchLocation,
-                        map: mapInstanceRef.current,
-                        draggable: true,
-                        title: "Drag to adjust location",
-                        animation: window.google.maps.Animation.DROP,
-                    });
-
-                    // Drag Listener
-                    searchMarkerRef.current.addListener("dragend", (event) => {
-                        const newLat = event.latLng.lat();
-                        const newLng = event.latLng.lng();
-                        setSearchLocation({ lat: newLat, lng: newLng });
-                    });
-                } else {
-                    searchMarkerRef.current.setPosition(searchLocation);
-                    searchMarkerRef.current.setMap(mapInstanceRef.current);
-                }
-
-            } else {
-                // 2. Normal Mode: Show User Location & Stores
-                if (searchMarkerRef.current) {
-                    searchMarkerRef.current.setMap(null); // Hide search marker
-                    searchMarkerRef.current = null;
-                }
-
-                if (userLocation) {
-                    // Update Map Center (Only if NO route active)
-                    if (!routeStoreId) {
-                        mapInstanceRef.current.panTo(userLocation);
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [{ visibility: "off" }]
                     }
+                ]
+            });
 
-                    // Add/Ensure User Marker
-                    new window.google.maps.Marker({
-                        position: userLocation,
-                        map: mapInstanceRef.current,
-                        title: "You are here",
-                        icon: {
-                            path: window.google.maps.SymbolPath.CIRCLE,
-                            scale: 10,
-                            fillColor: "#4285F4",
-                            fillOpacity: 1,
-                            strokeColor: "white",
-                            strokeWeight: 2,
-                        },
-                    });
+            mapInstanceRef.current = map;
+            directionsServiceRef.current = new window.google.maps.DirectionsService();
+            directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: true,
+                polylineOptions: { strokeColor: "#1A73E8", strokeWeight: 5 },
+            });
 
-                    // Add Backend Store Markers
-                    stores.forEach(store => {
-                        if (!markersRef.current[store.id]) { // Avoid dupes
-                            const marker = new window.google.maps.Marker({
-                                position: { lat: store.latitude, lng: store.longitude },
-                                map: mapInstanceRef.current,
-                                title: store.name,
-                                icon: {
-                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                                },
-                                clickable: true,
-                            });
+            // User Marker (Only if we have a real user location)
+            if (userLocation) {
+                markersRef.current.userMarker = new window.google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    icon: {
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: "#4285F4",
+                        fillOpacity: 1,
+                        strokeColor: "white",
+                        strokeWeight: 2,
+                    },
+                    title: "Your Location"
+                });
+            }
+        }
+        // Update Map Center & Marker if location changes
+        else if (mapInstanceRef.current && userLocation) {
+            mapInstanceRef.current.panTo(userLocation);
 
-                            // Marker Click Listener (Step 4 - Map -> List)
-                            marker.addListener("click", () => {
-                                handleStoreSelect(store);
-                            });
-
-                            markersRef.current[store.id] = marker;
-                        }
-                    });
-                }
+            // Create or Update User Marker
+            if (!markersRef.current.userMarker) {
+                markersRef.current.userMarker = new window.google.maps.Marker({
+                    position: userLocation,
+                    map: mapInstanceRef.current,
+                    icon: {
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: "#4285F4",
+                        fillOpacity: 1,
+                        strokeColor: "white",
+                        strokeWeight: 2,
+                    },
+                    title: "Your Location"
+                });
+            } else {
+                markersRef.current.userMarker.setPosition(userLocation);
             }
         }
 
-    }, [isLoaded, isLocationResolved, isManualMode, userLocation, searchLocation]);
-
-
-    // Initialize Autocomplete (Only in Manual Mode)
-    useEffect(() => {
-        if (isLoaded && isManualMode && searchInputRef.current) {
-            const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-                fields: ["geometry", "formatted_address"],
+        // -- Autocomplete Setup (Only when input is visible) --
+        if (isManualMode && autocompleteInputRef.current && !autocompleteInstanceRef.current) {
+            const autocomplete = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
+                fields: ["geometry", "name"],
+                types: ["geocode", "establishment"]
             });
 
             autocomplete.addListener("place_changed", () => {
                 const place = autocomplete.getPlace();
-                if (place.geometry && place.geometry.location) {
-                    const lat = place.geometry.location.lat();
-                    const lng = place.geometry.location.lng();
-                    setSearchLocation({ lat, lng });
-                    // Map update handled by main useEffect via searchLocation dependency
+
+                if (!place.geometry || !place.geometry.location) {
+                    setError("Please select a valid location from the list.");
+                    return;
+                }
+
+                const newLoc = {
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng()
+                };
+
+                handleLocationUpdate(newLoc);
+                // Optionally exit manual mode UI if we want to hide search bar, 
+                // but usually better to keep search bar accessible or switch to 'results' view
+                // For now, checks requirement: "Display store cards... (same UI as live location)"
+                // We'll keep manual mode TRUE but if we have stores, show the list.
+            });
+
+            autocompleteInstanceRef.current = autocomplete;
+        }
+
+    }, [isLoaded, userLocation, isManualMode]);
+
+
+    // 3. Update Markers when Stores Change
+    useEffect(() => {
+        if (!mapInstanceRef.current || stores.length === 0) return;
+
+        // Clear existing markers
+        Object.values(markersRef.current).forEach(marker => marker.setMap(null));
+        markersRef.current = {};
+
+        // Create new markers
+        stores.forEach(store => {
+            const marker = new window.google.maps.Marker({
+                position: { lat: store.latitude, lng: store.longitude },
+                map: mapInstanceRef.current,
+                title: store.name,
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
                 }
             });
+
+            marker.addListener("click", () => handleStoreSelect(store));
+            markersRef.current[store.id] = marker;
+        });
+
+    }, [stores]);
+
+    // Handler: Select Store
+    const handleStoreSelect = (store) => {
+        setSelectedStore(store);
+
+        // Shuffle Categories
+        const shuffled = getShuffledMenuForVendor(store.id);
+        setMenuData(shuffled);
+        if (shuffled.length > 0) setExpandedCategory(shuffled[0].categoryId);
+
+        if (isMobile) setActiveView('map');
+        if (!isMobile && storeItemRefs.current[store.id]) {
+            storeItemRefs.current[store.id].scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [isLoaded, isManualMode]);
-
-
-    // Confirm Location Logic
-    const confirmManualLocation = () => {
-        const finalLocation = searchLocation;
-        setUserLocation(finalLocation);
-        localStorage.setItem('userLocation', JSON.stringify(finalLocation));
-        setIsManualMode(false);
-        // This will trigger fetchStores via useEffect([userLocation])
+        calculateRoute(store);
     };
 
-    // Handle Selection Sync (Step 4 & Red Marker Logic)
-    useEffect(() => {
-        // 1. Cleanup Red Marker (Always happen on change)
-        if (storeMarkerRef.current) {
-            storeMarkerRef.current.setMap(null);
-            storeMarkerRef.current = null;
-        }
+    // Toggle Accordion
+    const toggleCategory = (id) => {
+        setExpandedCategory(expandedCategory === id ? null : id);
+    };
 
-        // Guard clauses
-        if (!selectedStoreId || isManualMode) return;
-
-        // Find store data
-        const store = stores.find(s => s.id === selectedStoreId);
-        if (!store) return;
-
-        // 2. Highlight Marker (List -> Map) - Bounces proper blue marker if exists
-        if (markersRef.current) {
-            Object.keys(markersRef.current).forEach(id => {
-                const marker = markersRef.current[id];
-                if (marker) {
-                    if (id === selectedStoreId) {
-                        marker.setAnimation(window.google.maps.Animation.BOUNCE);
-                        setTimeout(() => marker.setAnimation(null), 1500);
-                    } else {
-                        marker.setAnimation(null);
-                    }
-                }
-            });
-        }
-
-        // 3. Scroll List to Item (Map -> List)
-        const el = itemRefs.current[selectedStoreId];
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, [selectedStoreId, stores, isManualMode]);
-
-    // Function to Calculate Route
-    const drawRouteToStore = (store) => {
-        if (!userLocation || !store || !directionsServiceRef.current || !directionsRendererRef.current) return;
-
-        // Clear previous route
-        directionsRendererRef.current.setDirections({ routes: [] });
-
-        // Ensure renderer is attached to map
-        if (directionsRendererRef.current.getMap() !== mapInstanceRef.current) {
-            directionsRendererRef.current.setMap(mapInstanceRef.current);
-        }
+    // Logic: Calculate Route
+    const calculateRoute = (store) => {
+        if (!directionsServiceRef.current || !directionsRendererRef.current || !userLocation) return;
 
         directionsServiceRef.current.route(
             {
-                origin: { lat: Number(userLocation.lat), lng: Number(userLocation.lng) },
-                destination: { lat: Number(store.latitude), lng: Number(store.longitude) }, // Using store.latitude/longitude as per existing data structure
+                origin: userLocation,
+                destination: { lat: store.latitude, lng: store.longitude },
                 travelMode: window.google.maps.TravelMode.DRIVING,
             },
             (result, status) => {
                 if (status === window.google.maps.DirectionsStatus.OK) {
                     directionsRendererRef.current.setDirections(result);
-
-                    // Explicitly re-render the store marker to ensure visibility
-                    if (storeMarkerRef.current) {
-                        storeMarkerRef.current.setMap(null);
-                    }
-                    storeMarkerRef.current = new window.google.maps.Marker({
-                        position: { lat: store.latitude, lng: store.longitude },
-                        map: mapInstanceRef.current,
-                        title: store.name,
-                        icon: {
-                            url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                        },
-                        zIndex: 999 // Ensure it sits on top of the route line
-                    });
-
                     const leg = result.routes[0].legs[0];
                     setRouteInfo({
                         distance: leg.distance.text,
                         duration: leg.duration.text
                     });
                 } else {
-                    console.error("Directions failed:", status);
-                    setRouteInfo(null);
+                    console.error("Directions request failed due to " + status);
                 }
             }
         );
     };
 
-    const handleStoreSelect = (store) => {
-        setSelectedStoreId(store.id);
-        drawRouteToStore(store);
-    };
-
-    const handleViewStore = (store) => {
-        setSelectedStoreId(store.id);
-        drawRouteToStore(store);
-    };
-
-    const handleStoreClick = (storeId) => {
-        const store = stores.find(s => s.id === storeId);
-        if (store) {
-            handleStoreSelect(store);
-        }
+    // UI: View Menu Modal
+    const toggleMenu = (e) => {
+        if (e) e.stopPropagation();
+        setIsMenuOpen(!isMenuOpen);
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] overflow-hidden bg-white">
+        <div className="flex flex-col h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] bg-white overflow-hidden relative">
 
-            {/* MOBILE TOGGLE */}
-            <div className="md:hidden flex items-center justify-between p-3 gap-3 border-b border-gray-200 bg-white z-20 sticky top-0 shadow-sm">
+            {/* Header (Mobile Only) */}
+            <div className="md:hidden flex items-center justify-between p-3 border-b bg-white z-20 shadow-sm">
                 <button
                     onClick={() => setActiveView('list')}
-                    className={classNames(
-                        "flex-1 py-2.5 px-4 text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition-all duration-200 rounded-full",
-                        activeView === 'list'
-                            ? "bg-secondary text-white shadow-md transform scale-105"
-                            : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
-                    )}
+                    className={classNames("flex-1 py-2 text-sm font-bold rounded-l-lg border", activeView === 'list' ? "bg-secondary text-white" : "bg-gray-50")}
                 >
-                    <FiList size={18} />
-                    List View
+                    List
                 </button>
                 <button
                     onClick={() => setActiveView('map')}
-                    className={classNames(
-                        "flex-1 py-2.5 px-4 text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition-all duration-200 rounded-full",
-                        activeView === 'map'
-                            ? "bg-secondary text-white shadow-md transform scale-105"
-                            : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
-                    )}
+                    className={classNames("flex-1 py-2 text-sm font-bold rounded-r-lg border", activeView === 'map' ? "bg-secondary text-white" : "bg-gray-50")}
                 >
-                    <FiMap size={18} />
-                    Map View
+                    Map
                 </button>
             </div>
 
-            {/* MAIN CONTENT */}
-            <div className="flex-grow flex relative overflow-hidden">
+            <div className="flex flex-grow overflow-hidden relative">
 
-                {/* LEFT PANEL: LIST */}
-                <div
-                    className={classNames(
-                        "w-full md:w-[40%] bg-white h-full overflow-y-auto custom-scrollbar absolute md:relative z-10 transition-transform duration-300",
-                        activeView === 'list' ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                {/* 1. LIST PANEL (Left) */}
+                <div className={classNames(
+                    "w-full md:w-[35%] lg:w-[400px] h-full overflow-y-auto bg-white z-10 transition-transform duration-300 absolute md:relative border-r border-gray-200 custom-scrollbar flex flex-col",
+                    (isMobile && activeView !== 'list') ? "-translate-x-full" : "translate-x-0"
+                )}>
+                    {/* Search Bar (Only visible in Manual Mode OR if user wants to change loc) */}
+                    {(isManualMode) && (
+                        <div className="p-4 border-b bg-gray-50 sticky top-0 z-20">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                Search Location
+                            </label>
+                            <div className="relative">
+                                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    ref={autocompleteInputRef}
+                                    type="text"
+                                    placeholder="Enter area, landmark..."
+                                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all"
+                                />
+                            </div>
+                        </div>
                     )}
-                >
-                    <div className="p-4 md:p-6 lg:p-8 min-h-full">
-                        {isManualMode ? (
-                            <div className="mb-6">
-                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                                    Enter Location
-                                </h1>
-                                <p className="text-gray-500 text-sm mb-6">
-                                    Search or drag the pin to set your delivery location.
-                                </p>
 
-                                {/* Search Input */}
-                                <div className="relative mb-6">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiSearch className="text-gray-400" size={20} />
-                                    </div>
-                                    <input
-                                        ref={searchInputRef}
-                                        type="text"
-                                        placeholder="Search for a location..."
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary focus:border-transparent outline-none shadow-sm transition-all"
-                                    />
-                                </div>
-
-                                {/* Confirm Button */}
-                                <button
-                                    onClick={confirmManualLocation}
-                                    className="w-full py-3.5 bg-secondary text-white font-bold rounded-xl shadow-lg hover:bg-yellow-600 transition-all transform active:scale-[0.98]"
-                                >
-                                    Confirm Location
-                                </button>
+                    <div className="p-4 flex-grow">
+                        {/* Header: Stores or "Enter Location" prompt */}
+                        {!userLocation && isManualMode ? (
+                            <div className="text-center py-10 opacity-60">
+                                <FiMapPin className="mx-auto text-4xl text-gray-300 mb-3" />
+                                <p>Enter a location above to find stores</p>
                             </div>
                         ) : (
-                            <div className="mb-6">
-                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                                    Juice Stores Near You
-                                </h1>
-                                <p className="text-gray-500 text-sm">
-                                    Find the closest Fresh Sutra outlet and order fresh.
-                                </p>
-                            </div>
-                        )}
+                            <>
+                                <div className="flex justify-between items-end mb-4">
+                                    <div>
+                                        <h1 className="text-xl font-bold text-gray-800 mb-1">Nearby Juice Stores</h1>
+                                        <p className="text-sm text-gray-500">Found {stores.length} fresh spots</p>
+                                    </div>
+                                    {!isManualMode && (
+                                        <button
+                                            onClick={() => { setIsManualMode(true); setTimeout(() => autocompleteInputRef.current?.focus(), 100); }}
+                                            className="text-xs font-bold text-secondary underline"
+                                        >
+                                            Change
+                                        </button>
+                                    )}
+                                </div>
 
-                        {/* CONTENT STATES */}
-                        {!isManualMode && (
-                            <div className="space-y-4">
                                 {isLoading && (
-                                    <>
-                                        <StoreCardSkeleton />
-                                        <StoreCardSkeleton />
-                                        <StoreCardSkeleton />
-                                        <StoreCardSkeleton />
-                                    </>
-                                )}
-
-                                {!isLoading && stores.length > 0 && (
-                                    stores.map((store, index) => (
-                                        <div key={`store-wrapper-${store.id}`}>
-                                            {/* Ad Slot after the 2nd store (index 1) */}
-                                            {index === 2 && (
-                                                <AdSlot variant="listing" className="mb-4" />
-                                            )}
-
-                                            <div
-                                                key={store.id}
-                                                ref={el => itemRefs.current[store.id] = el}
-                                                onClick={() => handleStoreClick(store.id)}
-                                                className={classNames(
-                                                    "bg-white border rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer group",
-                                                    selectedStoreId === store.id
-                                                        ? "border-secondary ring-1 ring-secondary shadow-md bg-orange-50/10"
-                                                        : "border-gray-100 hover:shadow-md hover:border-gray-200"
-                                                )}
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h3 className={classNames(
-                                                        "text-lg font-bold transition-colors",
-                                                        selectedStoreId === store.id ? "text-secondary" : "text-gray-800 group-hover:text-secondary"
-                                                    )}>
-                                                        {store.name}
-                                                    </h3>
-                                                    <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                                                        {store.distanceKm ? `${store.distanceKm.toFixed(1)} km away` : 'Calculating...'}
-                                                    </span>
-                                                </div>
-
-                                                {store.isFSSAI && (
-                                                    <div className="flex items-center gap-1.5 text-green-600 mb-4">
-                                                        <FiCheckCircle size={14} />
-                                                        <span className="text-xs font-semibold uppercase tracking-wide">FSSAI Verified</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="space-y-3">
-                                                    {/* Route Info Overlay */}
-                                                    {routeStoreId === store.id && routeInfo && (
-                                                        <div className="bg-blue-50 border border-blue-100 p-2.5 rounded-lg flex items-center justify-between text-sm">
-                                                            <span className="text-secondary font-bold">{routeInfo.distance}</span>
-                                                            <span className="text-gray-500">•</span>
-                                                            <span className="text-gray-700 font-medium">{routeInfo.duration} to get there</span>
-                                                        </div>
-                                                    )}
-
-                                                    <button
-                                                        onClick={() => handleViewStore(store)}
-                                                        className={classNames(
-                                                            "w-full py-2 rounded-lg text-sm font-semibold transition-colors",
-                                                            selectedStoreId === store.id
-                                                                ? "bg-secondary text-white hover:bg-yellow-600 shadow-sm"
-                                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                                        )}
-                                                    >
-                                                        {routeStoreId === store.id ? "View Store" : "View Store"}
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => handleSeeMenu(e, store)}
-                                                        className="w-full py-2 rounded-lg text-sm font-semibold transition-colors bg-secondary text-white hover:bg-yellow-600 shadow-sm mt-2"
-                                                    >
-                                                        See Menu
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-
-                                {!isLoading && stores.length === 0 && (
-                                    <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-100 bg-gray-50/50">
-                                        <FiSearch className="mx-auto text-gray-300 mb-3" size={48} />
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-1">No stores found</h3>
-                                        <p className="text-gray-500 text-sm">We could not find any juice stores near your location.</p>
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+                                        ))}
                                     </div>
                                 )}
-                            </div>
+
+                                {error && (
+                                    <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm mb-4">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div className="space-y-4" ref={storeListRef}>
+                                    {stores.map((store) => (
+                                        <div
+                                            key={store.id}
+                                            ref={el => storeItemRefs.current[store.id] = el}
+                                            className={classNames(
+                                                "border rounded-xl p-4 transition-all cursor-pointer hover:shadow-md",
+                                                selectedStore?.id === store.id ? "border-secondary ring-1 ring-secondary bg-orange-50/20" : "border-gray-100"
+                                            )}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900">{store.name}</h3>
+                                                    <p className="text-xs text-gray-500 mt-1">{store.address}</p>
+
+                                                    {store.rating > 0 && (
+                                                        <div className="flex items-center gap-1 mt-2">
+                                                            <FiStar className="text-yellow-400 fill-current" size={14} />
+                                                            <span className="text-sm font-semibold text-gray-700">{store.rating}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {store.isOpen && (
+                                                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                                        OPEN
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="grid grid-cols-2 gap-3 mt-4">
+                                                <button
+                                                    onClick={() => handleStoreSelect(store)}
+                                                    className="py-2 px-3 bg-secondary text-white text-sm font-bold rounded-lg hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <FiNavigation size={14} />
+                                                    View Loction
+                                                </button>
+                                                <button
+                                                    onClick={toggleMenu}
+                                                    className="py-2 px-3 border border-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                                                >
+                                                    View Menu
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
 
-                {/* RIGHT PANEL: MAP */}
-                <div
-                    className={classNames(
-                        "w-full md:w-[60%] bg-gray-100 h-full absolute md:relative transition-transform duration-300",
-                        activeView === 'map' ? "translate-x-0 z-20" : "translate-x-full md:translate-x-0 z-0"
-                    )}
-                >
-                    {!isLoaded || !isLocationResolved ? (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100/80 text-gray-400 font-medium border-l border-gray-200">
-                            <div className="text-center">
-                                <p>Loading map...</p>
-                                {loadError && (
-                                    <div className="mt-4 flex flex-col items-center text-red-500">
-                                        <FiAlertCircle size={24} className="mb-2" />
-                                        <span className="text-sm font-semibold">Map unavailable</span>
-                                    </div>
-                                )}
+                {/* 2. MAP PANEL (Right) */}
+                <div className={classNames(
+                    "w-full md:flex-1 h-full bg-gray-100 absolute md:relative transition-transform duration-300",
+                    (isMobile && activeView !== 'map') ? "translate-x-full" : "translate-x-0"
+                )}>
+                    {/* Route Info Overlay */}
+                    {routeInfo && selectedStore && (
+                        <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 bg-white p-3 rounded-xl shadow-lg z-10 md:min-w-[200px] border-l-4 border-secondary">
+                            <h4 className="font-bold text-gray-800 text-sm">{selectedStore.name}</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-lg font-bold text-secondary">{routeInfo.duration}</span>
+                                <span className="text-gray-400 text-sm">({routeInfo.distance})</span>
                             </div>
+
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${selectedStore.latitude},${selectedStore.longitude}&travelmode=driving`;
+                                    window.open(url, '_blank');
+                                }}
+                                className="mt-2 py-1.5 px-3 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-full text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 max-w-[120px]"
+                            >
+                                <FiNavigation size={12} />
+                                Let's Go...
+                            </button>
                         </div>
-                    ) : (
-                        <div ref={mapRef} className="w-full h-full" />
                     )}
+
+                    <div ref={mapRef} className="w-full h-full" />
                 </div>
 
             </div>
+
+            {/* View Menu Modal (Redesigned) */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity" onClick={toggleMenu}>
+                    <div
+                        className="bg-white rounded-[20px] w-full max-w-[460px] max-h-[85vh] md:max-h-[80vh] flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white rounded-t-[20px] sticky top-0 z-20">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    fresh menu
+                                </h2>
+                                <p className="text-xs text-secondary font-medium mt-1">
+                                    ₹60 per glass (standard size)
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleMenu}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
+                            >
+                                <FiX size={18} />
+                            </button>
+                        </div>
+
+                        {/* Scrollable Content */}
+                        <div className="overflow-y-auto custom-scrollbar flex-grow p-4 space-y-3">
+                            {menuData.map((category) => {
+                                const isExpanded = expandedCategory === category.categoryId;
+                                return (
+                                    <div key={category.categoryId} className="border border-gray-100 rounded-xl overflow-hidden transition-all duration-300">
+                                        {/* Accordion Header */}
+                                        <button
+                                            onClick={() => toggleCategory(category.categoryId)}
+                                            className={classNames(
+                                                "w-full flex items-center justify-between p-4 text-left transition-colors",
+                                                isExpanded ? "bg-orange-50/50" : "bg-white hover:bg-gray-50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xl">{getCategoryIcon(category.categoryId)}</span>
+                                                <span className={classNames("text-sm font-bold", isExpanded ? "text-gray-900" : "text-gray-700")}>
+                                                    {category.categoryName}
+                                                </span>
+                                            </div>
+                                            {isExpanded ? <FiChevronUp className="text-gray-400" /> : <FiChevronDown className="text-gray-400" />}
+                                        </button>
+
+                                        {/* Accordion Body */}
+                                        <div className={classNames(
+                                            "overflow-hidden transition-[max-height] duration-300 ease-in-out",
+                                            isExpanded ? "max-h-[500px]" : "max-h-0"
+                                        )}>
+                                            <div className="p-4 pt-0 bg-white space-y-4">
+                                                <div className="h-px bg-gray-50 mx-4 mb-4" /> {/* Divider */}
+
+                                                {category.items.map((item) => (
+                                                    <div key={item.itemId} className="flex justify-between items-start group">
+                                                        <div className="pr-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-semibold text-gray-800 text-[15px]">
+                                                                    {item.name}
+                                                                </h4>
+                                                                {item.isHealthy && (
+                                                                    <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-full border border-green-100">
+                                                                        <FiCheck size={8} /> HEALTHY
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[13px] text-gray-500 mt-1 leading-snug">
+                                                                {item.description}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-sm font-bold text-secondary whitespace-nowrap bg-orange-50 px-2 py-1 rounded-md">
+                                                            {formatPrice(category.price)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

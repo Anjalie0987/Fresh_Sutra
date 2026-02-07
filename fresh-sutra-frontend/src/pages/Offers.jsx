@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import classNames from 'classnames';
 import { FiGift, FiZap, FiAward, FiClock, FiMapPin, FiSmile } from 'react-icons/fi';
 import AdSlot from '../components/AdSlot';

@@ -1,3 +1,4 @@
+import React from 'react';
 import Hero from '../../components/home/Hero';
 import AdSlot from '../../components/AdSlot';
 import HowItWorks from '../../components/home/HowItWorks';

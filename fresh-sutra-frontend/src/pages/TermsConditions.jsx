@@ -135,8 +135,8 @@ const TermsConditions = () => {
                             </p>
                             <div className="flex items-center space-x-2 text-gray-800 font-medium">
                                 <span>Support Email:</span>
-                                <a href="mailto:freshsutra88@gmail.com" className="text-[#FF8C00] hover:text-[#e67e00] transition-colors">
-                                    freshsutra88@gmail.com
+                                <a href="mailto:freshsutra7@gmail.com" className="text-[#FF8C00] hover:text-[#e67e00] transition-colors">
+                                    freshsutra7@gmail.com
                                 </a>
                             </div>
                         </section>

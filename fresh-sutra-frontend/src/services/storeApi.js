@@ -30,3 +30,26 @@ export const fetchNearbyStores = async (lat, lng, radius = 10) => {
         throw error;
     }
 };
+
+/**
+ * Fetch nearby juice stores from Google Places via Backend
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {Promise<Array>} List of Google Places stores
+ */
+export const fetchNearbyJuiceStores = async (lat, lng) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/nearby-juice-stores?lat=${lat}&lng=${lng}`);
+
+        if (!response.ok) {
+            console.error("API failed", response.status);
+            throw new Error(`Error fetching juice stores: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("API call failed:", error);
+        throw error;
+    }
+};

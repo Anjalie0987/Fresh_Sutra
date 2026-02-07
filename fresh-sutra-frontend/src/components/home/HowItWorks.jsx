@@ -1,3 +1,4 @@
+import React from 'react';
 import StepLocation from '../../assets/images/location.png';
 import StepStore from '../../assets/images/store.png';
 import StepDelivery from '../../assets/images/delivered.png';

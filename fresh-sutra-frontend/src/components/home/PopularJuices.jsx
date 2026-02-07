@@ -1,3 +1,4 @@
+import React from 'react';
 import OrangeJuiceImg from '../../assets/images/img3.png';
 import PineappleJuiceImg from '../../assets/images/img4.png';
 import MixedFruitJuiceImg from '../../assets/images/mixed.png';
