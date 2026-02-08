@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaInstagram, FaTwitter, FaLinkedinIn } from 'react-icons/fa';
+import { FaInstagram, FaFacebook } from 'react-icons/fa';
 import Logo from '../../assets/icons/FreshSutra_Logo.jpg';
 import AdSlot from '../AdSlot';
 
@@ -81,8 +81,7 @@ const Footer = () => {
                         <h4 className="text-lg font-bold mb-6 text-white tracking-wide">Connect With Us</h4>
                         <div className="flex gap-4 mb-6">
                             <SocialIcon Icon={FaInstagram} href="https://instagram.com" />
-                            <SocialIcon Icon={FaTwitter} href="https://twitter.com" />
-                            <SocialIcon Icon={FaLinkedinIn} href="https://linkedin.com" />
+                            <SocialIcon Icon={FaFacebook} href="https://www.facebook.com/accordantconsultants/" />
                         </div>
                         <a
                             href="mailto:accordantconsultants@gmail.com"
