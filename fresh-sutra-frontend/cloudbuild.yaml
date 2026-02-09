@@ -1,0 +1,16 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'asia-south1-docker.pkg.dev/fresh-sutra8/fresh-sutra-repo/frontend',
+        '--build-arg',
+        'VITE_API_BASE_URL=https://fresh-sutra-backend-422807162362.asia-south1.run.app',
+        '--build-arg',
+        'VITE_GOOGLE_MAPS_API_KEY=AIzaSyAi0yKraDOCEDp3buYYDqCDItBqsqLUdkw',
+        '.'
+      ]
+
+images:
+  - 'asia-south1-docker.pkg.dev/fresh-sutra8/fresh-sutra-repo/frontend'

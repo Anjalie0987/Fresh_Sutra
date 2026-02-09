@@ -42,8 +42,11 @@ export const fetchNearbyJuiceStores = async (lat, lng) => {
         const response = await fetch(`${API_BASE_URL}/nearby-juice-stores?lat=${lat}&lng=${lng}`);
 
         if (!response.ok) {
-            console.error("API failed", response.status);
-            throw new Error(`Error fetching juice stores: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.error || response.statusText;
+            const errorDetails = errorData.details || "";
+            console.error("API failed", response.status, errorMessage, errorDetails);
+            throw new Error(`Error fetching juice stores: ${errorMessage} ${errorDetails}`);
         }
 
         const data = await response.json();

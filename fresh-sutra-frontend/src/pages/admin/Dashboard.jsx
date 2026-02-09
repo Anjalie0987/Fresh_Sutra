@@ -11,6 +11,7 @@ import {
     getRecentOrders,
     getStoresList
 } from '../../admin/services/adminApi';
+import { API_BASE_URL } from '../../config/api';
 
 // --- Helper Components (MUST be at the top) ---
 
@@ -162,7 +163,7 @@ const AdminDashboard = () => {
                         onClick={async () => {
                             try {
                                 const token = localStorage.getItem('token');
-                                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/reports/customer-match`, {
+                                const response = await fetch(`${API_BASE_URL}/api/admin/reports/customer-match`, {
                                     method: 'GET',
                                     headers: {
                                         'Authorization': `Bearer ${token}`

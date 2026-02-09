@@ -12,9 +12,13 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build-time variable for API URL (will be passed via --build-arg)
+# Build-time variable for API URL
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Build-time variable for Maps Key
+ARG VITE_GOOGLE_MAPS_API_KEY
+ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 
 # Build the project
 RUN npm run build
