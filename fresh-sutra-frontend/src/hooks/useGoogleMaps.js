@@ -1,63 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
+/**
+ * Custom hook to dynamically load the Google Maps Map SDK + Places Library.
+ * Returns { isLoaded, loadError } so consumers know when the SDK is ready.
+ */
 const useGoogleMaps = () => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [loadError, setLoadError] = useState(null);
+    const loadAttempted = useRef(false);
 
     useEffect(() => {
-        // If already loaded, set state and return
+        // Already loaded from a previous render or another component
         if (window.google && window.google.maps) {
             setIsLoaded(true);
             return;
         }
 
-        // Check if script is already present to prevent duplicates
-        const existingScript = document.querySelector('script[src^="https://maps.googleapis.com/maps/api/js"]');
+        // Prevent duplicate script injection across React strict-mode double mounts
+        if (loadAttempted.current) return;
+        loadAttempted.current = true;
 
-        if (existingScript) {
-            // If script exists but not loaded, listen for load event
-            const handleLoad = () => setIsLoaded(true);
-            const handleError = (err) => setLoadError(err);
-
-            existingScript.addEventListener('load', handleLoad);
-            existingScript.addEventListener('error', handleError);
-
-            return () => {
-                existingScript.removeEventListener('load', handleLoad);
-                existingScript.removeEventListener('error', handleError);
-            };
-        }
-
-        // Create new script tag
         const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
         if (!apiKey) {
-            setLoadError(new Error("Google Maps API key is missing. Please set VITE_GOOGLE_MAPS_API_KEY in your environment."));
-            console.error("Google Maps API key is missing.");
+            const err = new Error(
+                'Google Maps API key is missing. Set VITE_GOOGLE_MAPS_API_KEY in your .env file.'
+            );
+            setLoadError(err);
+            console.error(err.message);
             return;
         }
 
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
+        // Check for existing scripts (e.g. from HMR)
+        const existingMapScript = document.querySelector(
+            'script[src*="maps.googleapis.com/maps/api/js"]'
+        );
+        if (existingMapScript) {
+            // Scripts already injected — wait for them
+            const checkReady = setInterval(() => {
+                if (window.google && window.google.maps) {
+                    clearInterval(checkReady);
+                    setIsLoaded(true);
+                }
+            }, 200);
+            return () => clearInterval(checkReady);
+        }
 
-        const handleLoad = () => setIsLoaded(true);
-        const handleError = (err) => {
+        const mapScript = document.createElement('script');
+        mapScript.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        mapScript.async = true;
+
+        mapScript.onload = () => {
+            if (window.google && window.google.maps) {
+                setIsLoaded(true);
+            } else {
+                setLoadError(new Error('Google Maps SDK loaded but `window.google.maps` is unavailable.'));
+            }
+        };
+
+        mapScript.onerror = (err) => {
             setLoadError(err);
-            console.error("Failed to load Google Maps SDK", err);
+            console.error('Failed to load Google Maps SDK', err);
         };
 
-        script.addEventListener('load', handleLoad);
-        script.addEventListener('error', handleError);
-
-        document.body.appendChild(script);
-
-        return () => {
-            script.removeEventListener('load', handleLoad);
-            script.removeEventListener('error', handleError);
-            // We usually don't remove the script on unmount to cache it for other components
-        };
+        document.head.appendChild(mapScript);
     }, []);
 
     return { isLoaded, loadError };

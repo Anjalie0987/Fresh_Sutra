@@ -16,22 +16,28 @@ model Store {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  name          String
+  mobileNumber  String   @unique
+  email         String?  @unique
+  password      String
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
 
   // New fields for Google Ads Report
-  firstName String?
-  lastName  String?
-  phone     String?
-  country   String?   @default("IN")
-  zip       String?
-  city      String?
+  firstName     String?
+  lastName      String?
+  phone         String?
+  country       String?   @default("IN")
+  zip           String?
+  city          String?
 
-  orders    Order[]
+  orders        Order[]
+  resetOtp      String?
+  otpExpiry     DateTime?
+  otpAttempts   Int       @default(0)
+  otpRequests   Int       @default(0)
+  lastOtpRequest DateTime?
 }
 
 model Order {

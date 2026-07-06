@@ -24,12 +24,12 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (mobileNumber, password) => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ mobileNumber, password }),
             });
 
             const data = await response.json();
@@ -53,12 +53,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signup = async (name, email, password) => {
+    const signup = async (name, mobileNumber, password) => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify({ name, mobileNumber, password }),
             });
 
             const data = await response.json();

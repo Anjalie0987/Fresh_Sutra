@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config/api';
 
 const JoinUs = () => {
     const [formData, setFormData] = React.useState({
-        email: "",
+        phoneNumber: "",
         message: ""
     });
     const [loading, setLoading] = React.useState(false);
@@ -21,8 +21,15 @@ const JoinUs = () => {
         setLoading(true);
         setError("");
 
-        if (!formData.email.trim() || !formData.message.trim()) {
-            setError("Email and message are required.");
+        if (!formData.phoneNumber.trim() || !formData.message.trim()) {
+            setError("Phone number and message are required.");
+            setLoading(false);
+            return;
+        }
+
+        const phoneRegex = /^\+?[0-9\s-]{10,15}$/;
+        if (!phoneRegex.test(formData.phoneNumber.replace(/\s+/g, ''))) {
+            setError("Please enter a valid phone number (digits only, optional country code).");
             setLoading(false);
             return;
         }
@@ -33,7 +40,7 @@ const JoinUs = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: "Partner Inquiry",
-                    email: formData.email,
+                    phoneNumber: formData.phoneNumber,
                     subject: "Join Us Query",
                     message: formData.message + "\n\n[Source: Join Us section]"
                 }),
@@ -42,7 +49,7 @@ const JoinUs = () => {
             if (!res.ok) throw new Error("Request failed");
 
             setSubmitted(true);
-            setFormData({ email: "", message: "" });
+            setFormData({ phoneNumber: "", message: "" });
             setTimeout(() => setSubmitted(false), 5000);
         } catch (err) {
             console.error(err);
@@ -78,15 +85,21 @@ const JoinUs = () => {
                                 </span>
                             </h1>
                             <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-lg mx-auto md:mx-0 leading-relaxed">
-                                Reach nearby customers and receive fresh juice orders directly. Manage your store effortlessly and boost revenue.
+                                Reach nearby customers, receive fresh juice orders instantly, and grow your business faster. Manage your store effortlessly, get paid quickly, and maximize your revenue with Fresh Sutra.
                             </p>
 
-                            <div className="hidden md:flex items-center gap-6 text-gray-400 text-sm font-medium">
+                            <div className="hidden md:flex flex-wrap items-center gap-6 text-gray-400 text-sm font-medium">
                                 <div className="flex items-center gap-2">
                                     <FiCheckCircle className="text-green-400" /> No joining fees
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <FiCheckCircle className="text-green-400" /> Weekly payouts
+                                    <FiCheckCircle className="text-green-400" /> Hourly payouts
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <FiCheckCircle className="text-green-400" /> Fast order notifications
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <FiCheckCircle className="text-green-400" /> Higher earning potential
                                 </div>
                             </div>
                         </div>
@@ -118,11 +131,11 @@ const JoinUs = () => {
 
                                         <div>
                                             <input
-                                                type="email"
-                                                name="email"
-                                                value={formData.email}
+                                                type="tel"
+                                                name="phoneNumber"
+                                                value={formData.phoneNumber}
                                                 onChange={handleChange}
-                                                placeholder="Enter your email address"
+                                                placeholder="Enter your phone number"
                                                 required
                                                 className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-gray-900 placeholder-gray-400 font-medium"
                                             />
@@ -218,10 +231,6 @@ const JoinUs = () => {
                                     <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm shadow-sm md:w-fit">
                                         <div className="bg-green-100 p-2 rounded-full text-green-600"><FiCheckCircle /></div>
                                         <span className="font-semibold text-gray-700">Bank Account Details</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm shadow-sm md:w-fit">
-                                        <div className="bg-green-100 p-2 rounded-full text-green-600"><FiCheckCircle /></div>
-                                        <span className="font-semibold text-gray-700">GSTIN</span>
                                     </div>
                                     <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm shadow-sm md:w-fit">
                                         <div className="bg-green-100 p-2 rounded-full text-green-600"><FiCheckCircle /></div>

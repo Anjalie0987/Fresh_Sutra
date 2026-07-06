@@ -10,8 +10,9 @@ import ScrollToTop from './components/ScrollToTop';
 
 // Lazy Load Pages
 const Home = lazy(() => import('./pages/public/Home'));
-const Offers = lazy(() => import('./pages/Offers'));
+// const Offers = lazy(() => import('./pages/Offers'));
 const Login = lazy(() => import('./pages/auth/Login'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const LocationAccess = lazy(() => import('./pages/public/LocationAccess'));
 const NearbyStores = lazy(() => import('./pages/NearbyStores'));
 const StoreDetail = lazy(() => import('./pages/StoreDetail'));
@@ -62,8 +63,9 @@ const router = createBrowserRouter([
         errorElement: <ErrorBoundary />, // Catch router-level errors
         children: [
             { index: true, element: <Home /> },
-            { path: "offers", element: <Offers /> },
+            // { path: "offers", element: <Offers /> },
             { path: "login", element: <Login /> },
+            { path: "forgot-password", element: <ForgotPassword /> },
             { path: "location", element: <LocationAccess /> },
             { path: "stores-near-you", element: <NearbyStores /> },
             { path: "store/:storeId", element: <StoreDetail /> },

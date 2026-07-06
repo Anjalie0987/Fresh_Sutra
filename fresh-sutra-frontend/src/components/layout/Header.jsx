@@ -64,10 +64,10 @@ const Header = () => {
 
                     {/* Desktop Left Nav */}
                     <nav className="hidden desktop:flex items-center gap-8">
-                        <HeaderNavItem
+                        {/* <HeaderNavItem
                             text="Offers & Rewards"
                             to="/offers"
-                        />
+                        /> */}
                         <HeaderNavItem
                             text="Find a Store"
                             to="/location"
@@ -158,11 +158,11 @@ const Header = () => {
 
                     {/* Mobile Nav Items */}
                     <div className="flex flex-col gap-6 w-full justify-center">
-                        <HeaderNavItem
+                        {/* <HeaderNavItem
                             text="Offers & Rewards"
                             to="/offers"
                             onClick={handleMobileLinkClick}
-                        />
+                        /> */}
                         <HeaderNavItem
                             text="Find a Store"
                             to="/location"

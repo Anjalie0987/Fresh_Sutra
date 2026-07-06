@@ -3,7 +3,7 @@ import Hero from '../../components/home/Hero';
 import AdSlot from '../../components/AdSlot';
 import HowItWorks from '../../components/home/HowItWorks';
 import PopularJuices from '../../components/home/PopularJuices';
-import HotDeals from '../../components/home/HotDeals';
+// import HotDeals from '../../components/home/HotDeals';
 import SEO from '../../components/common/SEO';
 
 const Home = () => {
@@ -17,7 +17,7 @@ const Home = () => {
             <AdSlot variant="banner" />
             <HowItWorks />
             <PopularJuices />
-            <HotDeals />
+            {/* <HotDeals /> */}
         </>
     );
 };

@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
-import { MdDeliveryDining } from 'react-icons/md';
 import { FiArrowRight } from 'react-icons/fi';
 
 // Import local assets
@@ -69,8 +68,7 @@ const Hero = () => {
 
                     {/* Badge */}
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-secondary-red font-bold text-xs uppercase tracking-wider mb-6 shadow-sm border border-orange-200/50 hover:bg-orange-200 transition-colors cursor-default">
-                        <MdDeliveryDining size={16} />
-                        Fresh Juice Delivery
+                        FRESH JUICE AT ITS BEST
                     </div>
 
                     {/* Heading */}

@@ -9,8 +9,8 @@ const Login = () => {
     const navigate = useNavigate();
     const { login, signup } = useAuth();
 
-    const [loginData, setLoginData] = useState({ email: '', password: '' });
-    const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
+    const [loginData, setLoginData] = useState({ mobileNumber: '', password: '' });
+    const [signupData, setSignupData] = useState({ name: '', mobileNumber: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -24,7 +24,7 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        const result = await login(loginData.email, loginData.password);
+        const result = await login(loginData.mobileNumber, loginData.password);
 
         setLoading(false);
 
@@ -43,7 +43,7 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        const result = await signup(signupData.name, signupData.email, signupData.password);
+        const result = await signup(signupData.name, signupData.mobileNumber, signupData.password);
 
         setLoading(false);
 
@@ -128,16 +128,16 @@ const Login = () => {
                         <form onSubmit={handleLogin} className="w-full flex flex-col gap-5 animate-fadeIn">
                             {error && <div className="p-3 bg-red-100 text-red-600 text-sm rounded-lg">{error}</div>}
 
-                            {/* Email Field */}
+                            {/* Mobile Number Field */}
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm font-semibold text-neutral-600 ml-1">
-                                    Email
+                                    Mobile Number
                                 </label>
                                 <input
-                                    type="email"
-                                    value={loginData.email}
-                                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                                    placeholder="Enter your email"
+                                    type="tel"
+                                    value={loginData.mobileNumber}
+                                    onChange={(e) => setLoginData({ ...loginData, mobileNumber: e.target.value })}
+                                    placeholder="Enter your mobile number"
                                     className="w-full px-5 py-3 rounded-lg border border-gray-200 focus:border-secondary focus:ring-1 focus:ring-secondary/50 outline-none transition-all placeholder:text-gray-400 text-neutral-800 bg-gray-50/50"
                                     required
                                 />
@@ -169,9 +169,9 @@ const Login = () => {
 
                             {/* Secondary Links */}
                             <div className="flex flex-col items-center gap-3 mt-2">
-                                <button type="button" className="text-sm text-neutral-500 hover:text-secondary font-medium transition-colors">
+                                <Link to="/forgot-password" className="text-sm text-neutral-500 hover:text-secondary font-medium transition-colors">
                                     Forgot password?
-                                </button>
+                                </Link>
                                 <p className="text-sm text-neutral-500">
                                     Don’t have an account?{' '}
                                     <button
@@ -206,16 +206,16 @@ const Login = () => {
                                     />
                                 </div>
 
-                                {/* Email Field */}
+                                {/* Mobile Number Field */}
                                 <div className="flex flex-col gap-2">
                                     <label className="text-sm font-semibold text-neutral-600 ml-1">
-                                        Email
+                                        Mobile Number
                                     </label>
                                     <input
-                                        type="email"
-                                        value={signupData.email}
-                                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                                        placeholder="Enter your email"
+                                        type="tel"
+                                        value={signupData.mobileNumber}
+                                        onChange={(e) => setSignupData({ ...signupData, mobileNumber: e.target.value })}
+                                        placeholder="Enter your mobile number"
                                         className="w-full px-5 py-3 rounded-lg border border-gray-200 focus:border-secondary focus:ring-1 focus:ring-secondary/50 outline-none transition-all placeholder:text-gray-400 text-neutral-800 bg-gray-50/50"
                                         required
                                     />

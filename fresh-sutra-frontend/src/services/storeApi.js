@@ -1,14 +1,12 @@
 /**
- * Service to interact with Store APIs
+ * Service to interact with Store APIs (Backend)
  */
 import { API_BASE_URL as BASE_URL } from '../config/api';
 
 const API_BASE_URL = `${BASE_URL}/api/stores`;
 
-
-
 /**
- * Fetch nearby stores based on coordinates and radius
+ * Fetch nearby stores based on coordinates and radius (from your backend DB)
  * @param {number} lat - Latitude
  * @param {number} lng - Longitude
  * @param {number} [radius=10] - Search radius in km
@@ -25,32 +23,6 @@ export const fetchNearbyStores = async (lat, lng, radius = 10) => {
 
         const data = await response.json();
         return data; // Returns array of stores with distanceKm
-    } catch (error) {
-        console.error("API call failed:", error);
-        throw error;
-    }
-};
-
-/**
- * Fetch nearby juice stores from Google Places via Backend
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @returns {Promise<Array>} List of Google Places stores
- */
-export const fetchNearbyJuiceStores = async (lat, lng) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/nearby-juice-stores?lat=${lat}&lng=${lng}`);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.error || response.statusText;
-            const errorDetails = errorData.details || "";
-            console.error("API failed", response.status, errorMessage, errorDetails);
-            throw new Error(`Error fetching juice stores: ${errorMessage} ${errorDetails}`);
-        }
-
-        const data = await response.json();
-        return data;
     } catch (error) {
         console.error("API call failed:", error);
         throw error;

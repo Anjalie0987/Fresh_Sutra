@@ -59,7 +59,7 @@ const Footer = () => {
                         <div className="flex flex-col">
                             <FooterLink to="/" text="Home" />
                             <FooterLink to="/location" text="Find a Store" />
-                            <FooterLink to="/offers" text="Offers & Rewards" />
+                            {/* <FooterLink to="/offers" text="Offers & Rewards" /> */}
                             <FooterLink to="/contact-us" text="Contact Us" />
                         </div>
                     </div>

@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
 // Haversine formula to calculate distance in km
 const getDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // Radius of the earth in km
@@ -92,6 +94,13 @@ export const getNearbyStores = async (req, res) => {
     }
 };
 
+/**
+ * Proxy: Google Places Nearby Search
+ * GET /api/stores/nearby-juice-stores?lat=...&lng=...
+ *
+ * Calls Mappls Nearby API from the backend (no CORS issues)
+ * and normalizes the response for the frontend.
+ */
 export const getNearbyJuiceStores = async (req, res) => {
     try {
         const { lat, lng } = req.query;
@@ -100,51 +109,103 @@ export const getNearbyJuiceStores = async (req, res) => {
             return res.status(400).json({ error: "Missing required query parameters: lat, lng" });
         }
 
-        const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-
-        // Debug Log (Masked Key)
-        console.log(`[StoreController] Fetching nearby juice stores for ${lat},${lng}`);
-        console.log(`[StoreController] API Key Present: ${!!apiKey}`);
-
-        if (!apiKey) {
-            console.error("[StoreController] CRITICAL: Google Maps API Key missing in backend .env");
-            return res.status(500).json({ error: "Server configuration error: Missing API Key" });
+        if (!GOOGLE_MAPS_API_KEY) {
+            console.error("[StoreController] CRITICAL: GOOGLE_MAPS_API_KEY missing in backend .env");
+            return res.status(500).json({ error: "Server configuration error: Missing Google Maps API Key" });
         }
 
-        const radius = 1500; // 1.5 km
-        const keyword = "juice";
-        const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${keyword}&key=${apiKey}`;
+        console.log(`[StoreController] Fetching nearby juice stores via Google Maps for ${lat},${lng}`);
 
-        const response = await axios.get(url);
+        const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`;
+        const response = await axios.get(url, {
+            params: {
+                location: `${lat},${lng}`,
+                radius: 5000,
+                keyword: "juice shop OR fruit juice OR juice bar",
+                key: GOOGLE_MAPS_API_KEY
+            },
+        });
+
         const data = response.data;
+        const places = data.results || [];
 
-        // Check for Google API specific error statuses
-        if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-            console.error("[StoreController] Google Places API Error:", data);
-            return res.status(500).json({
-                error: `Google API Error: ${data.status}`,
-                details: data.error_message || "No details provided"
-            });
-        }
+        // Normalize to consistent shape for frontend
+        const normalizedPlaces = places.map((place) => {
+            const distance = getDistance(parseFloat(lat), parseFloat(lng), place.geometry.location.lat, place.geometry.location.lng);
+            return {
+                id: place.place_id,
+                name: place.name || "Unknown Store",
+                address: place.vicinity || "",
+                latitude: place.geometry.location.lat,
+                longitude: place.geometry.location.lng,
+                distanceKm: parseFloat(distance.toFixed(2)),
+                distanceMeters: Math.round(distance * 1000),
+                rating: place.rating || 0,
+                isOpen: place.opening_hours ? place.opening_hours.open_now : true,
+                category: place.types ? place.types.join(", ") : "",
+                eLoc: place.place_id,
+            };
+        });
+        
+        normalizedPlaces.sort((a, b) => a.distanceKm - b.distanceKm);
 
-        const places = data.results.map(place => ({
-            id: place.place_id,
-            name: place.name,
-            latitude: place.geometry.location.lat,
-            longitude: place.geometry.location.lng,
-            rating: place.rating || 0,
-            address: place.vicinity,
-            isOpen: place.opening_hours?.open_now,
-            placeId: place.place_id
-        }));
-
-        res.status(200).json(places);
-
+        console.log(`[StoreController] Found ${normalizedPlaces.length} juice stores via Google Maps`);
+        res.status(200).json(normalizedPlaces);
     } catch (error) {
-        console.error("[StoreController] Backend Crash/Network Error:", error.message);
+        console.error("[StoreController] Google Places API Error:", error.message);
         if (error.response) {
+            console.error("[StoreController] Response Status:", error.response.status);
             console.error("[StoreController] Response Data:", error.response.data);
         }
-        res.status(500).json({ error: "Failed to fetch nearby stores due to server error" });
+        res.status(500).json({ error: "Failed to fetch nearby juice stores" });
+    }
+};
+
+/**
+ * Proxy: Google Maps Geocoding
+ * GET /api/stores/geocode?query=...
+ *
+ * Geocodes a text query to lat/lng using Google Geocoding API.
+ */
+export const geocodeLocation = async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        if (!query || query.trim().length < 2) {
+            return res.status(400).json({ error: "Query must be at least 2 characters" });
+        }
+
+        if (!GOOGLE_MAPS_API_KEY) {
+            console.error("[StoreController] CRITICAL: GOOGLE_MAPS_API_KEY missing in backend .env");
+            return res.status(500).json({ error: "Server configuration error: Missing Google Maps API Key" });
+        }
+
+        console.log(`[StoreController] Geocoding: "${query}"`);
+
+        const url = `https://maps.googleapis.com/maps/api/geocode/json`;
+        const response = await axios.get(url, {
+            params: { address: query.trim(), key: GOOGLE_MAPS_API_KEY },
+        });
+
+        const data = response.data;
+        const results = data.results || [];
+
+        if (!results || results.length === 0) {
+            return res.status(200).json(null);
+        }
+
+        const top = results[0];
+        res.status(200).json({
+            lat: parseFloat(top.geometry.location.lat),
+            lng: parseFloat(top.geometry.location.lng),
+            name: top.formatted_address || query,
+        });
+    } catch (error) {
+        console.error("[StoreController] Geocoding Error:", error.message);
+        if (error.response) {
+            console.error("[StoreController] Response Status:", error.response.status);
+            console.error("[StoreController] Response Data:", error.response.data);
+        }
+        res.status(500).json({ error: "Geocoding failed" });
     }
 };
