@@ -1,102 +1,57 @@
-# Fresh Sutra
+# Fresh Sutra 🍹
 
-This repository contains the source code for the **Fresh Sutra** project, featuring a React frontend and a Node.js/Express backend.
+Fresh Sutra is a hyperlocal platform that helps users discover nearby fresh juice vendors quickly and conveniently. The platform is designed to bridge the gap between customers looking for healthy beverages and local juice vendors who want greater visibility in their area.
 
-## Local Setup Guide
+The application provides an intuitive location-based experience where users can explore nearby vendors, view their offerings, compare options, and navigate to their preferred juice shop with ease.
 
-Follow these steps to get the project running on your local machine.
+## Project Vision
 
-### Prerequisites
-- **Node.js** (v16 or higher)
-- **PostgreSQL** (running locally)
-- **Git**
+The primary goal of Fresh Sutra is to support local businesses while making it easier for people to find fresh, healthy juice options around them. By combining location-based discovery with a simple and user-friendly interface, the platform enhances the overall customer experience.
 
+## Key Features
+
+- 📍 Discover nearby juice vendors based on your location
+- 🗺️ Interactive map for easy vendor exploration
+- 🔍 Search and filter vendors based on distance
+- 🥤 Browse vendor information and available products
+- 🧭 Get navigation directions to selected vendors
+- 📱 Responsive design for desktop and mobile devices
+- 👨‍💼 Vendor registration and profile management
+
+## Problem Statement
+
+Many local juice vendors have limited online visibility, making it difficult for nearby customers to discover them. Fresh Sutra addresses this problem by providing a dedicated platform that connects customers with local vendors through location-aware search and an interactive mapping experience.
+
+## Solution
+
+Fresh Sutra creates a digital ecosystem where:
+- Customers can easily locate trusted juice vendors nearby.
+- Vendors gain an online presence without requiring expensive marketing.
+- Healthy beverage options become more accessible within local communities.
+
+## Future Scope
+
+Future enhancements planned for Fresh Sutra include:
+- Online ordering and pickup
+- Customer ratings and reviews
+- Digital payments
+- Loyalty and rewards programs
+- AI-powered vendor recommendations
+- Real-time vendor availability
+- Seasonal offers and promotions
+
+## Target Users
+
+- Customers looking for fresh juices nearby
+- Local juice vendors
+- Health-conscious individuals
+- Small business owners
+
+## Project Status
+
+Fresh Sutra is actively under development, with continuous improvements being made to enhance usability, performance, and the overall user experience.
+
+EXPERIENCE IT HERE --> https://www.freshsutra.shop/
 ---
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd Fresh_Sutra
-```
-
----
-
-### 2. Backend Setup
-The backend handles the database and API logic.
-
-#### a. Navigate to the backend directory
-```bash
-cd fresh-sutra-frontend/fresh-sutra-backend
-```
-
-#### b. Install Dependencies
-```bash
-npm install
-```
-
-#### c. Create Environment Variables
-Create a new file named `.env` in the `fresh-sutra-backend` directory. This file is git-ignored and must be created manually.
-**Copy and paste the following content:**
-
-```env
-PORT=5000
-# Update the username (postgres), password (postgres123), and DB name (fresh_sutra) as per your local PostgreSQL setup
-DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/fresh_sutra"
-
-JWT_SECRET=supersecretkeyshouldbechangedindev
-EMAIL_USER=freshsutra88@gmail.com
-EMAIL_PASS=YOUR_GMAIL_APP_PASSWORD
-```
-> **Note:** Replace `YOUR_GMAIL_APP_PASSWORD` with a valid App Password if you need email functionality. For local dev, you can ignore it or use a placeholder.
-
-#### d. Setup Database
-Run the following commands to create the database tables and seed initial data:
-```bash
-# Push schema to database (this handles migrations)
-npx prisma db push
-
-# (Optional) Seed the database if a seed script exists
-npx prisma db seed
-```
-
-#### e. Start the Backend Server
-```bash
-npm run dev
-```
-You should see output indicating the server is running on `http://localhost:5000`.
-
----
-
-### 3. Frontend Setup
-The frontend is the user interface built with React/Vite.
-
-#### a. Navigate to the frontend directory
-Open a **new terminal** window (keep the backend running) and navigate to the frontend folder:
-```bash
-cd fresh-sutra-frontend
-```
-*(Note: If you are in the root `Fresh_Sutra` folder, the path is `fresh-sutra-frontend`)*
-
-#### b. Install Dependencies
-```bash
-npm install
-```
-
-#### c. Create Environment Variables
-Create a file named `.env` in the `fresh-sutra-frontend` directory.
-**Copy and paste the following content:**
-
-```env
-# Optional: needed for features using Google Maps
-VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
-```
-
-#### d. Start the Frontend
-```bash
-npm run dev
-```
-
----
-
-### Access the App
-Open your browser and navigate to the URL shown in the terminal (usually `http://localhost:5173`).
+**Fresh Sutra – Discover Freshness Around You.**
